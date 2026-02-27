@@ -1,0 +1,44 @@
+scoring:
+  critical: 10
+  high: 7
+  medium: 4
+  low: 1
+  info: 0
+
+thresholds:
+  fail: 30
+  warn: 15
+  pass: 0
+
+rules:
+  - id: hardcoded_secrets
+    severity: critical
+    cwe: CWE-798
+    description: "Hardcoded secrets found in code"
+
+  - id: sql_injection
+    severity: critical
+    cwe: CWE-89
+    description: "Potential SQL injection vulnerability"
+
+  - id: command_injection
+    severity: critical
+    cwe: CWE-78
+    description: "Potential command injection vulnerability"
+
+  - id: xss
+    severity: high
+    cwe: CWE-79
+    description: "Cross-site scripting vulnerability"
+
+  - id: weak_crypto
+    severity: high
+    cwe: CWE-327
+    description: "Use of weak cryptographic algorithm"
+
+exclusions:
+  patterns:
+    - "test_*.py"
+    - "*_test.py"
+    - "node_modules/**"
+    - ".venv/**"

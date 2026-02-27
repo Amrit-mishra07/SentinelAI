@@ -1,0 +1,236 @@
+You are a senior distributed-systems architect.
+
+Generate a COMPLETE production-ready monorepo architecture EXACTLY as defined below.
+
+STRICT RULES:
+- Do NOT rename folders
+- Do NOT remove any folder
+- Do NOT simplify architecture
+- Do NOT add extra folders
+- Do NOT give explanations
+- First print full folder tree
+- Then print file contents grouped by folder
+- Code must be minimal but production-ready
+- Code must logically compile
+
+============================================================
+PROJECT NAME: AIpSCR
+============================================================
+
+TECH STACK:
+
+Frontend:
+- Next.js 14
+- TypeScript
+- App Router
+- TailwindCSS
+- Modular feature-based structure
+
+Backend API:
+- Python
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Pydantic
+- JWT Authentication
+- Dependency Injection pattern
+
+Worker:
+- Celery
+- Redis
+- Async task processing
+
+AI Core:
+- OpenAI provider abstraction
+- Prompt management layer
+- Response parsing
+- Patch generation
+
+Scanner Core:
+- Pluggable engine architecture
+- Bandit
+- Semgrep
+- ESLint integration
+
+Database:
+- PostgreSQL
+- SQLAlchemy ORM
+- Alembic migrations
+
+Infra:
+- Docker
+- Docker Compose
+- Nginx reverse proxy
+- CI/CD-ready structure
+
+============================================================
+EXACT FOLDER STRUCTURE (DO NOT MODIFY)
+============================================================
+
+AIpSCR/
+│
+├── apps/
+│   │
+│   ├── aipcsr-web/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   ├── dashboard/
+│   │   │   ├── scans/
+│   │   │   └── reports/
+│   │   ├── lib/
+│   │   ├── hooks/
+│   │   ├── types/
+│   │   ├── public/
+│   │   ├── package.json
+│   │   └── next.config.js
+│   │
+│   ├── aipcsr-api/
+│   │   ├── app/
+│   │   │   ├── main.py
+│   │   │   ├── routers/
+│   │   │   │   ├── auth.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── scan.py
+│   │   │   │   └── report.py
+│   │   │   ├── services/
+│   │   │   │   ├── auth_service.py
+│   │   │   │   ├── scan_service.py
+│   │   │   │   └── report_service.py
+│   │   │   ├── models/
+│   │   │   ├── schemas/
+│   │   │   ├── security/
+│   │   │   ├── dependencies/
+│   │   │   └── config/
+│   │   ├── tests/
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── aipcsr-worker/
+│   │   ├── tasks/
+│   │   │   ├── scan_task.py
+│   │   │   ├── ai_analysis_task.py
+│   │   │   └── report_task.py
+│   │   ├── orchestration/
+│   │   ├── celery_app.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   └── aipcsr-github-service/
+│
+├── core/
+│   │
+│   ├── scanner-core/
+│   │   ├── engines/
+│   │   │   ├── bandit_engine.py
+│   │   │   ├── semgrep_engine.py
+│   │   │   └── eslint_engine.py
+│   │   ├── orchestrator.py
+│   │   ├── severity_mapper.py
+│   │   └── report_builder.py
+│   │
+│   ├── ai-core/
+│   │   ├── providers/
+│   │   │   └── openai_provider.py
+│   │   ├── prompt_manager.py
+│   │   ├── response_parser.py
+│   │   └── patch_generator.py
+│   │
+│   ├── db-core/
+│   │   ├── base.py
+│   │   ├── session.py
+│   │   └── migrations/
+│   │
+│   ├── policies/
+│   │   └── scoring_rules.yaml
+│   │
+│   └── observability/
+│       ├── logger.py
+│       └── metrics.py
+│
+├── infrastructure/
+│   ├── docker/
+│   ├── nginx/
+│   ├── ci-cd/
+│   └── deployment/
+│
+├── docker-compose.yml
+├── .env.example
+└── README.md
+
+============================================================
+REQUIREMENTS
+============================================================
+
+FRONTEND:
+- Basic App Router layout
+- Login page
+- Dashboard page
+- API client using fetch
+- JWT storage strategy
+- Feature-based folder usage
+
+API:
+- FastAPI app initialization
+- Router registration
+- JWT auth dependency
+- SQLAlchemy base model
+- Example User model
+- Example Scan model
+- Health endpoint
+- Repository pattern
+
+WORKER:
+- Celery setup
+- Redis broker config
+- Example async scan task
+- AI analysis task stub
+- Report generation task stub
+
+SCANNER CORE:
+- Abstract base engine
+- Example Bandit runner
+- Example Semgrep runner
+- Example ESLint runner
+- Orchestrator combining engines
+
+AI CORE:
+- Provider abstraction class
+- OpenAI provider implementation
+- Prompt builder
+- Response parser
+- Patch generator stub
+
+DB CORE:
+- Engine creation
+- Session management
+- Alembic-ready structure
+
+INFRA:
+- Dockerfile for:
+    - API
+    - Worker
+    - Frontend
+- docker-compose including:
+    - postgres
+    - redis
+    - api
+    - worker
+    - frontend
+- Nginx reverse proxy config
+
+============================================================
+OUTPUT FORMAT
+============================================================
+
+1. Print full ASCII folder tree
+2. Then print file contents grouped by folder
+3. No explanations
+4. No commentary
+5. Minimal but production-ready code
+6. Follow clean architecture
+7. Make it scalable
+8. Make it interview-ready
+
+Generate now.

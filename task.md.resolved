@@ -1,0 +1,64 @@
+# AIpSCR - Project Completion Tasks
+
+This document contains the step-by-step tasks required to implement the complete functionality of the AIpSCR project, moving it from its current skeletal/stub state to a fully working production system.
+
+## 1. Database & Models (db-core & aipcsr-api)
+- [ ] Create branch `feature/backend/db/models`
+- [ ] Implement `User` model (`app/models/user.py`) with hashed passwords
+- [ ] Implement `Repository` model to track scanned repos
+- [ ] Implement `Scan` model to track scan status and metadata
+- [ ] Implement `Report` and `Vulnerability` models to store analysis results
+- [ ] Create branch `feature/backend/db/migrations`
+- [ ] Initialize Alembic in `db-core/migrations`
+- [ ] Generate initial Alembic migration for all models
+
+## 2. Authentication System (aipcsr-api)
+- [ ] Create branch `feature/backend/auth/jwt`
+- [ ] Implement JWT token generation/validation in `app/security/jwt.py`
+- [ ] Implement password hashing (bcrypt) in `app/security/passwords.py`
+- [ ] Create branch `feature/backend/auth/endpoints`
+- [ ] Implement `auth_service.py` for login/registration
+- [ ] Update `auth.py` router to use the service and connect to DB
+
+## 3. Core Scanning Infrastructure (scanner-core)
+- [ ] Implement repository cloning mechanism (download target repo securely for scanning)
+- [ ] Create branch `feature/backend/scanner/bandit`
+- [ ] Update [bandit_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/bandit_engine.py) to run `bandit` via subprocess and parse JSON output
+- [ ] Create branch `feature/backend/scanner/semgrep`
+- [ ] Update [semgrep_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/semgrep_engine.py) to run `semgrep` via subprocess and parse output
+- [ ] Create branch `feature/backend/scanner/eslint`
+- [ ] Update [eslint_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/eslint_engine.py) to run `eslint` via subprocess and parse output
+- [ ] Create branch `feature/backend/scanner/orchestrator`
+- [ ] Update [orchestrator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/orchestrator.py) to run engines concurrently and aggregate real results
+
+## 4. AI Analysis Infrastructure (ai-core)
+- [ ] Create branch `feature/backend/ai/openai-provider`
+- [ ] Implement [openai_provider.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/providers/openai_provider.py) to connect to OpenAI API (gpt-4)
+- [ ] Implement [prompt_manager.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/prompt_manager.py) to format vulnerability details into prompts
+- [ ] Implement [response_parser.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/response_parser.py) to extract fix suggestions and explanations
+- [ ] Implement [patch_generator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/patch_generator.py) to create diff patches from AI suggestions
+
+## 5. Worker & Async Tasks (aipcsr-worker)
+- [ ] Create branch `feature/backend/worker/celery-pipeline`
+- [ ] Finish [scan_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/scan_task.py): Update DB state to "scanning", call orchestrator, start AI analysis task when done
+- [ ] Implement [ai_analysis_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/ai_analysis_task.py): For each vulnerability, call AI core, store AI suggestions in DB
+- [ ] Implement [report_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/report_task.py): Aggregate everything into a structured report (PDF/JSON) and update DB state to "completed"
+
+## 6. Frontend Application (aipcsr-web)
+- [ ] Refine [tailwind.config.js](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/tailwind.config.js) and global styles
+- [ ] Create branch `feature/frontend/auth`
+- [ ] Implement Auth UI: Login and Registration pages (`features/auth/`)
+- [ ] Create branch `feature/frontend/dashboard`
+- [ ] Implement Dashboard UI: List previous scans and "New Scan" form taking a GitHub URL (`features/dashboard/`)
+- [ ] Implement Scan Details UI: View real-time status of a scan (`features/scans/`)
+- [ ] Create branch `feature/frontend/report-view`
+- [ ] Implement Report UI: View vulnerabilities, AI explanations, and suggested patches (`features/reports/`)
+- [ ] Integrate API calls using standard hooks and [api-client.ts](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/lib/api-client.ts)
+
+## 7. Infrastructure Integration
+- [ ] Create branch `feature/devops/docker/networking`
+- [ ] Finalize [docker-compose.yml](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/docker-compose.yml) to build all images correctly with necessary env vars
+- [ ] Ensure worker containers have `bandit`, `semgrep`, `eslint`, and `git` installed in their [Dockerfile](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-api/Dockerfile)
+- [ ] Verify Nginx proxy routing locally
+- [ ] Create branch `feature/devops/logging`
+- [ ] Comprehensive end-to-end testing
