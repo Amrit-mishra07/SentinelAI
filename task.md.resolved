@@ -3,11 +3,11 @@
 This document contains the step-by-step tasks required to implement the complete functionality of the AIpSCR project, moving it from its current skeletal/stub state to a fully working production system.
 
 ## 1. Database & Models (db-core & aipcsr-api)
-- [ ] Create branch `feature/backend/db/models`
-- [ ] Implement `User` model (`app/models/user.py`) with hashed passwords
-- [ ] Implement `Repository` model to track scanned repos
-- [ ] Implement `Scan` model to track scan status and metadata
-- [ ] Implement `Report` and `Vulnerability` models to store analysis results
+- [ok] Create branch `feature/backend/db/models`
+- [ok] Implement `User` model (`app/models/user.py`) with hashed passwords
+- [ok] Implement `Repository` model to track scanned repos
+- [ok] Implement `Scan` model to track scan status and metadata
+- [ok] Implement `Report` and `Vulnerability` models to store analysis results
 - [ ] Create branch `feature/backend/db/migrations`
 - [ ] Initialize Alembic in `db-core/migrations`
 - [ ] Generate initial Alembic migration for all models
