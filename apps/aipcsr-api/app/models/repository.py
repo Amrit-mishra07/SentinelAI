@@ -1,8 +1,6 @@
 from sqlalchemy import Column, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
+from app.models.base import Base
 
 class Repository(Base):
     __tablename__ = "repositories"

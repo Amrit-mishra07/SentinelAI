@@ -8,9 +8,9 @@ This document contains the step-by-step tasks required to implement the complete
 - [ok] Implement `Repository` model to track scanned repos
 - [ok] Implement `Scan` model to track scan status and metadata
 - [ok] Implement `Report` and `Vulnerability` models to store analysis results
-- [ ] Create branch `feature/backend/db/migrations`
-- [ ] Initialize Alembic in `db-core/migrations`
-- [ ] Generate initial Alembic migration for all models
+- [ok] Create branch `feature/backend/db/migrations2`
+- [ok] Initialize Alembic in `db-core/migrations`
+- [ok] Generate initial Alembic migration for all models
 
 ## 2. Authentication System (aipcsr-api)
 - [ ] Create branch `feature/backend/auth/jwt`

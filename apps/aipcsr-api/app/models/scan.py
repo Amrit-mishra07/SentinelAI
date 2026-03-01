@@ -1,9 +1,7 @@
 from sqlalchemy import Column, String, DateTime, Enum
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import enum
-
-Base = declarative_base()
+from app.models.base import Base
 
 class ScanStatus(str, enum.Enum):
     PENDING = "pending"

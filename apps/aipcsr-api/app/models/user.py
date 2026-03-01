@@ -1,11 +1,9 @@
 from sqlalchemy import Column, String, Boolean, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from passlib.context import CryptContext
+from app.models.base import Base
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
