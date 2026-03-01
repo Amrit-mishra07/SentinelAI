@@ -1,9 +1,7 @@
 from sqlalchemy import Column, String, Boolean, DateTime
 from datetime import datetime
-from passlib.context import CryptContext
 from app.models.base import Base
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.security.passwords import hash_password, verify_password
 
 class User(Base):
     __tablename__ = "users"
@@ -15,10 +13,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def set_password(self, password: str):
-        self.hashed_password = pwd_context.hash(password)
+        self.hashed_password = hash_password(password)
 
     def verify_password(self, password: str) -> bool:
-        return pwd_context.verify(password, self.hashed_password)
+        return verify_password(password, self.hashed_password)
 
     def __repr__(self):
         return f"<User {self.email}>"
