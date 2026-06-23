@@ -21,15 +21,15 @@ This document contains the step-by-step tasks required to implement the complete
 - [ok] Update `auth.py` router to use the service and connect to DB
 
 ## 3. Core Scanning Infrastructure (scanner-core)
-- [ ] Implement repository cloning mechanism (download target repo securely for scanning)
-- [ ] Create branch `feature/backend/scanner/bandit`
-- [ ] Update [bandit_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/bandit_engine.py) to run `bandit` via subprocess and parse JSON output
-- [ ] Create branch `feature/backend/scanner/semgrep`
-- [ ] Update [semgrep_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/semgrep_engine.py) to run `semgrep` via subprocess and parse output
-- [ ] Create branch `feature/backend/scanner/eslint`
-- [ ] Update [eslint_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/eslint_engine.py) to run `eslint` via subprocess and parse output
-- [ ] Create branch `feature/backend/scanner/orchestrator`
-- [ ] Update [orchestrator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/orchestrator.py) to run engines concurrently and aggregate real results
+- [ok] Implement repository cloning mechanism (download target repo securely for scanning)
+- [ok] Create branch `feature/backend/scanner/bandit`
+- [ok] Update [bandit_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/bandit_engine.py) to run `bandit` via subprocess and parse JSON output
+- [ok] Create branch `feature/backend/scanner/semgrep`
+- [ok] Update [semgrep_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/semgrep_engine.py) to run `semgrep` via subprocess and parse output
+- [ok] Create branch `feature/backend/scanner/eslint`
+- [ok] Update [eslint_engine.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/engines/eslint_engine.py) to run `eslint` via subprocess and parse output
+- [ok] Create branch `feature/backend/scanner/orchestrator`
+- [ok] Update [orchestrator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/orchestrator.py) to run engines concurrently and aggregate real results
 
 ## 4. AI Analysis Infrastructure (ai-core)
 - [ ] Create branch `feature/backend/ai/openai-provider`
