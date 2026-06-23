@@ -1,7 +1,7 @@
 import concurrent.futures
-from .engines.bandit_engine import BanditEngine
-from .engines.semgrep_engine import SemgrepEngine
-from .engines.eslint_engine import ESLintEngine
+from engines.bandit_engine import BanditEngine
+from engines.semgrep_engine import SemgrepEngine
+from engines.eslint_engine import ESLintEngine
 
 class ScannerOrchestrator:
     def __init__(self):
