@@ -15,10 +15,10 @@ This document contains the step-by-step tasks required to implement the complete
 ## 2. Authentication System (aipcsr-api)
 - [ok] Create branch `feature/backend/auth/jwt`
 - [ok] Implement JWT token generation/validation in `app/security/jwt.py`
-- [ ] Implement password hashing (bcrypt) in `app/security/passwords.py`
-- [ ] Create branch `feature/backend/auth/endpoints`
-- [ ] Implement `auth_service.py` for login/registration
-- [ ] Update `auth.py` router to use the service and connect to DB
+- [ok] Implement password hashing (bcrypt) in `app/security/passwords.py`
+- [ok] Create branch `feature/backend/auth/endpoints`
+- [ok] Implement `auth_service.py` for login/registration
+- [ok] Update `auth.py` router to use the service and connect to DB
 
 ## 3. Core Scanning Infrastructure (scanner-core)
 - [ ] Implement repository cloning mechanism (download target repo securely for scanning)
