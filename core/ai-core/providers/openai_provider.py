@@ -2,10 +2,14 @@ import requests
 import sys
 import os
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'apps', 'aipcsr-api'))
+# Add apps/aipcsr-api to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'apps', 'aipcsr-api')))
+# Add ai-core to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.config.settings import settings
+from prompt_manager import PromptManager
+from response_parser import ResponseParser
 
 class AIProvider:
     def analyze_vulnerability(self, vulnerability: dict) -> dict:
@@ -19,16 +23,9 @@ class OpenAIProvider(AIProvider):
     def analyze_vulnerability(self, vulnerability: dict) -> dict:
         """Analyze vulnerability and suggest fixes using OpenAI"""
         if not self.api_key:
-            return {"analysis": "API key not configured", "patch": ""}
+            return {"analysis": "API key not configured", "fix": ""}
         
-        prompt = f"""
-        Analyze this vulnerability and provide a fix:
-        File: {vulnerability.get('file')}
-        Issue: {vulnerability.get('issue')}
-        Severity: {vulnerability.get('severity')}
-        
-        Provide a concise fix.
-        """
+        prompt = PromptManager.get_prompt("analyze", context=str(vulnerability))
         
         try:
             response = requests.post(
@@ -37,16 +34,20 @@ class OpenAIProvider(AIProvider):
                 json={
                     "model": self.model,
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 300
+                    "max_tokens": 500
                 }
             )
             
             if response.status_code == 200:
+                raw_content = response.json()["choices"][0]["message"]["content"]
+                parsed_response = ResponseParser.parse_ai_response(raw_content)
+                
                 return {
-                    "analysis": response.json()["choices"][0]["message"]["content"],
-                    "vulnerability_id": vulnerability.get('file') + ":" + str(vulnerability.get('line'))
+                    "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
+                    "analysis": parsed_response.get("analysis", raw_content),
+                    "fix": parsed_response.get("fix", "")
                 }
         except Exception as e:
             return {"error": str(e)}
         
-        return {"analysis": "Could not analyze", "patch": ""}
+        return {"analysis": "Could not analyze", "fix": ""}
