@@ -32,11 +32,11 @@ This document contains the step-by-step tasks required to implement the complete
 - [ok] Update [orchestrator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/scanner-core/orchestrator.py) to run engines concurrently and aggregate real results
 
 ## 4. AI Analysis Infrastructure (ai-core)
-- [ ] Create branch `feature/backend/ai/openai-provider`
-- [ ] Implement [openai_provider.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/providers/openai_provider.py) to connect to OpenAI API (gpt-4)
-- [ ] Implement [prompt_manager.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/prompt_manager.py) to format vulnerability details into prompts
-- [ ] Implement [response_parser.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/response_parser.py) to extract fix suggestions and explanations
-- [ ] Implement [patch_generator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/patch_generator.py) to create diff patches from AI suggestions
+- [ok] Create branch `feature/backend/ai/openai-provider`
+- [ok] Implement [openai_provider.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/providers/openai_provider.py) to connect to OpenAI API (gpt-4)
+- [ok] Implement [prompt_manager.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/prompt_manager.py) to format vulnerability details into prompts
+- [ok] Implement [response_parser.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/response_parser.py) to extract fix suggestions and explanations
+- [ok] Implement [patch_generator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/patch_generator.py) to create diff patches from AI suggestions
 
 ## 5. Worker & Async Tasks (aipcsr-worker)
 - [ ] Create branch `feature/backend/worker/celery-pipeline`
