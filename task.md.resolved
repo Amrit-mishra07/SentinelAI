@@ -39,10 +39,13 @@ This document contains the step-by-step tasks required to implement the complete
 - [ok] Implement [patch_generator.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/core/ai-core/patch_generator.py) to create diff patches from AI suggestions
 
 ## 5. Worker & Async Tasks (aipcsr-worker)
-- [ ] Create branch `feature/backend/worker/celery-pipeline`
-- [ ] Finish [scan_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/scan_task.py): Update DB state to "scanning", call orchestrator, start AI analysis task when done
-- [ ] Implement [ai_analysis_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/ai_analysis_task.py): For each vulnerability, call AI core, store AI suggestions in DB
-- [ ] Implement [report_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/report_task.py): Aggregate everything into a structured report (PDF/JSON) and update DB state to "completed"
+- [ok] Create branch `feature/backend/worker/celery-pipeline`
+- [ok] Configure `celery_app.py` with Redis broker
+- [ok] Implement `tasks/scan_tasks.py` for queueing repository scans
+- [ok] Implement `tasks/ai_tasks.py` for queueing OpenAI analysis
+- [ok] Implement proper database session handling inside worker tasks when done
+- [ok] Implement [ai_analysis_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/ai_analysis_task.py): For each vulnerability, call AI core, store AI suggestions in DB
+- [ok] Implement [report_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/report_task.py): Aggregate everything into a structured report (PDF/JSON) and update DB state to "completed"
 
 ## 6. Frontend Application (aipcsr-web)
 - [ ] Refine [tailwind.config.js](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/tailwind.config.js) and global styles
