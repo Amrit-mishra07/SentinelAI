@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function useAuth() {
@@ -8,13 +8,19 @@ export function useAuth() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    if (!storedToken) {
-      router.push('/login');
-    } else {
+    if (storedToken) {
       setToken(storedToken);
+    } else {
+      router.push('/login');
     }
     setLoading(false);
   }, [router]);
 
-  return { token, loading };
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    router.push('/login');
+  };
+
+  return { token, loading, logout, userId: null };
 }
