@@ -21,6 +21,21 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(scan.router, prefix="/api/scan", tags=["scan"])
 app.include_router(repository.router, prefix="/api/repository", tags=["repository"])
 app.include_router(report.router, prefix="/api/report", tags=["report"])
+import sys
+import os
+
+db_core_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'core', 'db-core'))
+if db_core_path not in sys.path:
+    sys.path.insert(0, db_core_path)
+
+from session import engine
+from app.models.base import Base
+# Import all models to ensure they are registered with Base
+from app import models
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
     import uvicorn

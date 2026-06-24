@@ -48,20 +48,20 @@ This document contains the step-by-step tasks required to implement the complete
 - [ok] Implement [report_task.py](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-worker/tasks/report_task.py): Aggregate everything into a structured report (PDF/JSON) and update DB state to "completed"
 
 ## 6. Frontend Application (aipcsr-web)
-- [ ] Refine [tailwind.config.js](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/tailwind.config.js) and global styles
-- [ ] Create branch `feature/frontend/auth`
-- [ ] Implement Auth UI: Login and Registration pages (`features/auth/`)
-- [ ] Create branch `feature/frontend/dashboard`
-- [ ] Implement Dashboard UI: List previous scans and "New Scan" form taking a GitHub URL (`features/dashboard/`)
-- [ ] Implement Scan Details UI: View real-time status of a scan (`features/scans/`)
-- [ ] Create branch `feature/frontend/report-view`
-- [ ] Implement Report UI: View vulnerabilities, AI explanations, and suggested patches (`features/reports/`)
-- [ ] Integrate API calls using standard hooks and [api-client.ts](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/lib/api-client.ts)
+- [x] Refine [tailwind.config.js](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/tailwind.config.js) and global styles
+- [x] Create branch `feature/frontend/auth`
+- [x] Implement Auth UI: Login and Registration pages (`features/auth/`)
+- [x] Create branch `feature/frontend/dashboard`
+- [x] Implement Dashboard UI: List previous scans and "New Scan" form taking a GitHub URL (`features/dashboard/`)
+- [x] Implement Scan Details UI: View real-time status of a scan (`features/scans/`)
+- [x] Create branch `feature/frontend/report-view`
+- [x] Implement Report UI: View vulnerabilities, AI explanations, and suggested patches (`features/reports/`)
+- [x] Integrate API calls using standard hooks and [api-client.ts](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-web/lib/api-client.ts)
 
 ## 7. Infrastructure Integration
-- [ ] Create branch `feature/devops/docker/networking`
-- [ ] Finalize [docker-compose.yml](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/docker-compose.yml) to build all images correctly with necessary env vars
-- [ ] Ensure worker containers have `bandit`, `semgrep`, `eslint`, and `git` installed in their [Dockerfile](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-api/Dockerfile)
-- [ ] Verify Nginx proxy routing locally
-- [ ] Create branch `feature/devops/logging`
-- [ ] Comprehensive end-to-end testing
+- [x] Create branch `feature/devops/docker/networking`
+- [x] Finalize [docker-compose.yml](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/docker-compose.yml) to build all images correctly with necessary env vars
+- [x] Ensure worker containers have `bandit`, `semgrep`, `eslint`, and `git` installed in their [Dockerfile](file:///c:/Users/amrit/OneDrive/Desktop/Project/AIpSCR/apps/aipcsr-api/Dockerfile)
+- [x] Verify Nginx proxy routing locally
+- [x] Create branch `feature/devops/logging`
+- [x] Comprehensive end-to-end testing

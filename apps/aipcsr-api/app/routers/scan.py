@@ -8,6 +8,8 @@ router = APIRouter()
 # Mock scans database
 scans_db = {}
 
+from datetime import datetime
+
 @router.post("/create")
 async def create_scan(scan: ScanCreate, user_id: str = Depends(get_current_user)):
     scan_id = str(uuid.uuid4())
@@ -15,7 +17,8 @@ async def create_scan(scan: ScanCreate, user_id: str = Depends(get_current_user)
         "id": scan_id,
         "user_id": user_id,
         "repository": scan.repository,
-        "status": "pending"
+        "status": "pending",
+        "created_at": datetime.utcnow()
     }
     return ScanResponse(**scans_db[scan_id])
 
