@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { Report } from '@/types';
 
 export function useReport(scanId: string) {
@@ -9,7 +9,7 @@ export function useReport(scanId: string) {
 
   const fetchReport = useCallback(async () => {
     try {
-      const data = await apiClient.get<Report>(`/reports/${scanId}`);
+      const data = await api.get<Report>(`/reports/${scanId}`);
       setReport(data);
       setError(null);
     } catch (err: any) {

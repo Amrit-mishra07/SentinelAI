@@ -1,1 +1,5 @@
-export { default } from '@/features/scans/page';
+import { ScansPage } from '../../features/scans/ScansPage';
+
+export default function Scans() {
+  return <ScansPage />;
+}

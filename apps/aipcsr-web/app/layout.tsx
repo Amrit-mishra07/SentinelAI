@@ -1,19 +1,42 @@
-import { Inter, JetBrains_Mono } from 'next/font/google';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { ToastProvider } from "../components/ui/ToastProvider";
+import { AppShell } from "../components/layout/AppShell";
+import { ErrorBoundary } from "../components/ui/ErrorBoundary";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
 
-export const metadata = {
-  title: 'SentinelAI',
-  description: 'AI-Powered Security Code Review platform.',
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "SentinelAI — Security Scanner",
+  description: "AI-powered security code review platform",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} bg-slate-950 text-slate-200 font-sans antialiased`}>
-        {children}
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="antialiased min-h-screen bg-sentinel-base text-sentinel-text-primary">
+        <ToastProvider>
+          <ErrorBoundary>
+            <AppShell>
+              {children}
+            </AppShell>
+          </ErrorBoundary>
+        </ToastProvider>
       </body>
     </html>
   );

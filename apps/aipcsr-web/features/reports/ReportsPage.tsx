@@ -3,7 +3,7 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-export default function ReportsPage() {
+export const ReportsPage = () => {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto space-y-6">

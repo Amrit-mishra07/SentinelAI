@@ -1,5 +1,5 @@
-import ReportDetailPage from '@/features/reports/detail/page';
+import { ReportPage } from '../../../features/reports/[scanId]/ReportPage';
 
-export default function Page({ params }: { params: { scanId: string } }) {
-  return <ReportDetailPage params={params} />;
+export default function Report({ params }: { params: { scanId: string } }) {
+  return <ReportPage scanId={params.scanId} />;
 }

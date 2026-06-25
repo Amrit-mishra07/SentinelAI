@@ -21,4 +21,8 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
-celery_app.autodiscover_tasks(["tasks"])
+celery_app.conf.imports = (
+    "tasks.scan_task",
+    "tasks.ai_analysis_task",
+    "tasks.report_task"
+)

@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePolling } from '@/hooks/usePolling';
+import { api } from '@/lib/api-client';
 import { Scan } from '@/types';
-import { POLL_INTERVAL_FAST } from '@/lib/constants';
+import { POLLING_INTERVAL } from '@/lib/constants';
 
 export function useScanDetail(id: string) {
   const [scan, setScan] = useState<Scan | null>(null);
@@ -10,7 +11,7 @@ export function useScanDetail(id: string) {
 
   const fetchScan = useCallback(async () => {
     try {
-      const data = await apiClient.get<Scan>(`/scan/${id}`);
+      const data = await api.get<Scan>(`/scan/${id}`);
       setScan(data);
       setError(null);
     } catch (err: any) {
@@ -39,14 +40,8 @@ export function useScanDetail(id: string) {
     fetchScan();
   }, [fetchScan]);
 
-  useEffect(() => {
-    if (!scan) return;
-    const isActive = scan.status === 'pending' || scan.status === 'scanning';
-    if (!isActive) return;
-
-    const interval = setInterval(fetchScan, POLL_INTERVAL_FAST);
-    return () => clearInterval(interval);
-  }, [scan?.status, fetchScan]);
+  const isActive = useMemo(() => !!scan && (scan.status === 'pending' || scan.status === 'scanning'), [scan]);
+  usePolling(fetchScan, POLLING_INTERVAL, isActive);
 
   return { scan, loading, error, refetch: fetchScan };
 }

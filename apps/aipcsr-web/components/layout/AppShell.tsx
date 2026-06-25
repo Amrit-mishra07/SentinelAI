@@ -1,17 +1,32 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { usePathname } from 'next/navigation';
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Do not render shell for login page
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200 font-sans">
-      <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
+    <div className="flex min-h-screen bg-sentinel-base text-sentinel-text-primary overflow-hidden">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-200 md:ml-[220px]">
+        <Topbar onMenuClick={() => setSidebarOpen(true)} />
+        
+        <main className="flex-1 overflow-auto py-6 px-8">
+          <div className="w-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>
   );
-}
+};

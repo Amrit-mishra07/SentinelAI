@@ -1,0 +1,1064 @@
+# SentinelAI — Complete Frontend Rebuild
+
+## Who you are and what you're doing
+
+You are a senior frontend engineer who has shipped production UI at Vercel, Linear, and
+Cloudflare. You write TypeScript that is airtight, React that is composable, and CSS via
+Tailwind that has the precision of a design system. You do not write placeholder code.
+You do not leave TODOs. You do not take shortcuts on loading states, error states, or
+edge cases. Every component you write could ship to production today.
+
+You are rebuilding the entire frontend of **SentinelAI** — an AI-powered security code
+review platform that scans GitHub repositories for vulnerabilities and uses GPT-4 to
+generate patches. This is a B.Tech final project, but it needs to look and feel like
+something Snyk, Socket.dev, or GitHub Advanced Security would ship.
+
+The goal: when someone sees this on GitHub, they star it immediately.
+
+---
+
+## Audit the current codebase first
+
+Before writing a single line of new code, read every file in `apps/aipcsr-web/`. 
+Understand what exists. The current state is:
+
+- `app/layout.tsx` — bare root layout, no font imports
+- `app/page.tsx` — simple gradient hero, redirect to login
+- `app/dashboard/page.tsx` — re-exports from features, no real UI
+- `features/dashboard/page.tsx` — gray bg, basic scan list, no charts, no layout
+- `features/auth/login/page.tsx` — white centered form, minimal styling
+- `lib/api-client.ts` — basic fetch wrapper, no timeout, no typed errors
+- `hooks/useAuth.ts` — reads localStorage, redirects if no token
+- `types/index.ts` — basic types defined
+- `tailwind.config.js` — almost no customisation
+- `app/globals.css` — just Tailwind directives + box-sizing reset
+
+You are replacing or upgrading all of the above. Do not leave any existing page as-is.
+Every file gets touched.
+
+---
+
+## Design system — implement this exactly
+
+This is not negotiable. Every color, font, and spacing decision comes from here.
+
+### Palette
+
+```
+--color-bg-base:        #080c14   /* page background — almost black, slight blue tint */
+--color-bg-panel:       #0d1117   /* card/panel surface */
+--color-bg-elevated:    #161b22   /* hover states, dropdowns */
+--color-bg-inset:       #1c2333   /* inputs, code blocks */
+--color-border:         #21262d   /* default borders */
+--color-border-muted:   #30363d   /* stronger borders */
+--color-text-primary:   #e6edf3   /* headings, values */
+--color-text-secondary: #8b949e   /* labels, muted */
+--color-text-tertiary:  #484f58   /* placeholders, disabled */
+
+--color-accent:         #4f8ef7   /* primary blue — links, active states, primary CTA */
+--color-accent-glow:    rgba(79,142,247,0.15)  /* glow behind accent elements */
+
+--color-critical:       #f85149   /* severity: critical */
+--color-high:           #d29922   /* severity: high */
+--color-medium:         #388bfd   /* severity: medium */
+--color-low:            #3fb950   /* severity: low */
+--color-clean:          #3fb950   /* no vulnerabilities */
+
+--color-scanning:       #58a6ff   /* pulsing blue for active scan */
+--color-pending:        #6e7681   /* gray for queued */
+--color-failed:         #f85149   /* red for failed */
+--color-completed:      #3fb950   /* green for done */
+```
+
+**The signature element of this design:** a 1px `border-left` on every panel card using a 
+gradient that goes from the severity color at the top to transparent at the bottom. Critical 
+panels have a red left-border gradient. This is the visual motif that ties every card 
+together and makes the UI feel engineered rather than designed.
+
+### Typography
+
+Install via `next/font/google`:
+- **Geist** as the primary sans-serif (Vercel's typeface — clean, technical, modern)
+- **Geist Mono** as the monospace (file paths, code, hashes, IDs, scan output)
+
+If Geist is not available in next/font/google, fall back to **Inter** + **JetBrains Mono**.
+
+Type scale:
+```
+10px / weight 500 / tracking 0.08em  → EYEBROW LABELS (e.g., "CRITICAL", "REPOSITORIES")
+12px / weight 400                    → table cells, meta, timestamps  
+13px / weight 400                    → body text, descriptions
+14px / weight 500                    → nav items, button text, table headers
+16px / weight 500                    → card titles, section headings
+20px / weight 500                    → page headings
+24px / weight 600                    → metric card numbers (medium)
+36px / weight 600 / tabular nums     → hero stat numbers (large)
+```
+
+Monospace appears on: file paths, commit hashes, scan IDs, line numbers, code diffs,
+API endpoints, repository URLs. Always use `font-mono` for these. Never render a SHA or
+file path in the sans-serif face.
+
+### Spacing + Layout
+
+- Sidebar: `220px` fixed left, full viewport height, `position: fixed`
+- Topbar: `56px` height, `position: sticky top-0`, `z-index: 40`, backdrop blur
+- Content area: `margin-left: 220px`, `padding: 24px 32px`, scrollable
+- Card border-radius: `8px` 
+- Input border-radius: `6px`
+- Button border-radius: `6px`
+- Gap between grid items: `16px`
+- Section spacing: `32px`
+
+---
+
+## File structure — create every file listed
+
+```
+apps/aipcsr-web/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx                         → redirect to /dashboard
+│   ├── globals.css
+│   ├── login/
+│   │   └── page.tsx                     → 'use client', re-export LoginPage
+│   ├── dashboard/
+│   │   └── page.tsx                     → re-export DashboardPage
+│   ├── repositories/
+│   │   └── page.tsx
+│   ├── scans/
+│   │   ├── page.tsx
+│   │   └── [scanId]/
+│   │       └── page.tsx
+│   ├── reports/
+│   │   ├── page.tsx
+│   │   └── [scanId]/
+│   │       └── page.tsx
+│   └── patches/
+│       └── page.tsx
+│
+├── components/
+│   ├── layout/
+│   │   ├── AppShell.tsx
+│   │   ├── Sidebar.tsx
+│   │   └── Topbar.tsx
+│   ├── ui/
+│   │   ├── Badge.tsx
+│   │   ├── Button.tsx
+│   │   ├── Card.tsx
+│   │   ├── EmptyState.tsx
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── ErrorState.tsx
+│   │   ├── Input.tsx
+│   │   ├── Modal.tsx
+│   │   ├── Skeleton.tsx
+│   │   ├── Spinner.tsx
+│   │   ├── Toast.tsx
+│   │   ├── ToastProvider.tsx
+│   │   └── Tooltip.tsx
+│   └── charts/
+│       ├── SeverityBars.tsx
+│       ├── DonutChart.tsx
+│       ├── ScanTimeline.tsx
+│       └── SparkLine.tsx
+│
+├── features/
+│   ├── auth/
+│   │   └── login/
+│   │       ├── LoginPage.tsx
+│   │       └── LoginForm.tsx
+│   ├── dashboard/
+│   │   ├── DashboardPage.tsx
+│   │   ├── MetricCard.tsx
+│   │   ├── RecentScansTable.tsx
+│   │   ├── RepositoryHealthList.tsx
+│   │   └── AIActivityFeed.tsx
+│   ├── repositories/
+│   │   ├── RepositoriesPage.tsx
+│   │   ├── RepositoryCard.tsx
+│   │   └── ConnectRepoModal.tsx
+│   ├── scans/
+│   │   ├── ScansPage.tsx
+│   │   ├── ScanRow.tsx
+│   │   ├── NewScanModal.tsx
+│   │   ├── [scanId]/
+│   │   │   ├── ScanDetailPage.tsx
+│   │   │   ├── ScanProgress.tsx
+│   │   │   ├── ScanTerminal.tsx
+│   │   │   └── VulnerabilityList.tsx
+│   ├── reports/
+│   │   ├── ReportsPage.tsx
+│   │   └── [scanId]/
+│   │       ├── ReportPage.tsx
+│   │       ├── RiskGauge.tsx
+│   │       └── VulnerabilityDetail.tsx
+│   └── patches/
+│       └── PatchesPage.tsx
+│
+├── hooks/
+│   ├── useAuth.ts
+│   ├── useToast.ts
+│   ├── useScans.ts
+│   ├── useScanDetail.ts
+│   ├── useRepositories.ts
+│   ├── useReport.ts
+│   ├── useKeyboard.ts            → global keyboard shortcut handler
+│   └── usePolling.ts             → reusable polling hook
+│
+├── lib/
+│   ├── api-client.ts
+│   ├── formatters.ts
+│   ├── constants.ts
+│   └── mock-data.ts              → realistic mock data for when API is down
+│
+└── types/
+    └── index.ts
+```
+
+---
+
+## Types — define all of these in `types/index.ts`
+
+```typescript
+export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low'
+export type ScanStatus = 'pending' | 'scanning' | 'completed' | 'failed'
+export type PatchStatus = 'pending' | 'applied' | 'rejected'
+
+export interface User {
+  id: string
+  email: string
+}
+
+export interface AuthResponse {
+  access_token: string
+  token_type: string
+  user: User
+}
+
+export interface Repository {
+  id: string
+  name: string
+  url: string
+  owner_id: string
+  default_branch: string
+  created_at: string
+  updated_at: string
+  last_scan_at?: string
+  last_scan_severity?: SeverityLevel | null
+  total_vulnerabilities?: number
+}
+
+export interface Scan {
+  id: string
+  repository_id: string
+  repository_name?: string
+  branch: string
+  commit_hash: string | null
+  status: ScanStatus
+  created_at: string
+  started_at: string | null
+  completed_at: string | null
+  updated_at: string
+  vulnerabilities_count?: number
+  severity?: SeverityLevel | null
+  error_message?: string | null
+}
+
+export interface Vulnerability {
+  id: string
+  report_id: string
+  rule_id: string
+  message: string
+  file_path: string
+  line_number: number | null
+  severity: SeverityLevel
+  created_at: string
+  ai_analysis?: string | null
+  ai_patch?: string | null
+  patch_status?: PatchStatus
+}
+
+export interface Report {
+  id: string
+  scan_id: string
+  vulnerabilities_count: number
+  severity: SeverityLevel | null
+  created_at: string
+  vulnerabilities?: Vulnerability[]
+}
+
+export interface SeverityCounts {
+  critical: number
+  high: number
+  medium: number
+  low: number
+}
+
+export interface ApiError {
+  status: number
+  message: string
+  detail?: string
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  per_page: number
+}
+```
+
+---
+
+## `lib/api-client.ts` — rebuild this completely
+
+Requirements:
+- Generic typed methods: `get<T>`, `post<T>`, `put<T>`, `delete<T>`
+- Reads token from localStorage, guards SSR with `typeof window !== 'undefined'`
+- Throws typed `ApiError` (with `status` + `message`) on non-2xx
+- On 401: dispatch a custom DOM event `'sentinelai:unauthorized'` (not a direct redirect
+  — let the auth hook handle navigation to avoid React state issues)
+- 30 second timeout via `AbortController` — throw a specific `RequestTimeoutError`
+- In development: log every request and response to console with timing
+- Never swallow errors silently
+
+```typescript
+// Shape of the client
+export const api = {
+  get: <T>(path: string) => Promise<T>
+  post: <T>(path: string, body?: unknown) => Promise<T>
+  put: <T>(path: string, body?: unknown) => Promise<T>
+  delete: <T>(path: string) => Promise<T>
+}
+```
+
+---
+
+## `lib/formatters.ts`
+
+Implement every one:
+
+```typescript
+formatDate(iso: string): string
+  // "Jun 24, 2026"
+
+formatTime(iso: string): string
+  // "14:32 UTC"
+
+formatRelative(iso: string): string
+  // "just now" | "2 minutes ago" | "3 hours ago" | "yesterday" | "Jun 24"
+  // switch to absolute date when > 7 days ago
+
+formatDuration(startIso: string, endIso: string | null): string
+  // "1m 23s" | "45s" | "—" when endIso is null
+
+formatFilePathTruncated(path: string, maxLen?: number): string
+  // truncates the MIDDLE: "src/.../auth/queries.py:42"
+  // never truncate the filename itself, only intermediate directories
+
+formatCount(n: number): string
+  // < 1000: "742"
+  // >= 1000: "1.2k"
+  // >= 1_000_000: "1.2M"
+
+pluralize(n: number, singular: string, plural?: string): string
+  // pluralize(1, 'scan') → '1 scan'
+  // pluralize(3, 'scan') → '3 scans'
+
+computeRiskScore(counts: SeverityCounts): number
+  // critical×10 + high×7 + medium×4 + low×1
+  // clamp to 0–100
+  // critical=3,high=12,medium=7,low=4 → min(100, 30+84+28+4) = 100
+
+getRiskLabel(score: number): 'Critical Risk' | 'High Risk' | 'Medium Risk' | 'Low Risk' | 'Clean'
+  // ≥80 → Critical, ≥50 → High, ≥20 → Medium, >0 → Low, 0 → Clean
+
+truncateScanId(id: string): string
+  // "3f4a8b2c-..." → "#3f4a8b"
+
+formatCommitHash(hash: string | null): string
+  // null → "—"
+  // "abc123def456..." → "abc123d"
+```
+
+---
+
+## Login Page
+
+**This is not just a form. It needs to feel like logging into something important.**
+
+Full-screen dark page (`bg-[#080c14]`). Two-column layout on desktop, single column on mobile.
+
+Left column (hidden on mobile): 
+- Large wordmark "SentinelAI" with a subtle blue glow
+- Three feature bullets with small icons:
+  - "Scan any GitHub repository in seconds"
+  - "AI-powered vulnerability analysis via GPT-4"  
+  - "Automated patch generation and PR creation"
+- Below: a static "demo scan" visualization — monospace text that looks like a real scan
+  output, showing file paths and severity indicators. Pre-written, not fetching anything.
+  This gives the page life without a backend.
+
+Right column:
+- "Sign in to SentinelAI" heading
+- Email + password inputs with proper dark styling (no white background on inputs —
+  they should be `bg-[#161b22]` with `border-[#30363d]`, white text)
+- "Sign in" button: solid blue, full width, shows spinner while loading
+- "Don't have an account? Register" link below
+- Keyboard: Enter on password submits. Tab order correct.
+
+Validation:
+- Email: valid format (use simple regex, not a library)
+- Password: minimum 1 char (backend validates length)
+- Show field-level errors, not just a banner
+- Error from API (401): "Invalid email or password" inline below the button
+- Network error: "Connection failed. Check your internet connection."
+- Timeout: "The server took too long to respond. Try again."
+
+On success: brief flash of a success state (checkmark animation, ~300ms), then redirect.
+On failure: shake animation on the card (CSS `@keyframes shake`).
+
+---
+
+## AppShell — the permanent container for all authenticated pages
+
+Sidebar (220px, fixed left, full height):
+```
+┌────────────────────┐
+│  ⬡ SentinelAI     │  ← logo + wordmark, 56px height
+├────────────────────┤
+│                    │
+│  ⌂  Dashboard      │  ← active: left border accent, lighter bg
+│  ◫  Repositories   │
+│  ⟳  Scans         │
+│  📄  Reports       │
+│  ⚡  AI Patches    │
+│                    │
+├────────────────────┤
+│  ⚙  Settings      │  ← bottom section
+│                    │
+│  [avatar] am@... ↓ │  ← user email truncated, dropdown: Profile / Sign out
+└────────────────────┘
+```
+
+Each nav item:
+- Icon (use inline SVG — do not import a library unless lucide-react is already installed)
+- Label
+- Hover: `bg-[#161b22]`
+- Active: `border-l-2 border-[#4f8ef7] bg-[#4f8ef7]/5 text-[#e6edf3]`
+- Inactive: `text-[#8b949e]`
+- Active route detection via `usePathname()`
+
+Mobile sidebar:
+- Hidden below 768px, replaced by a hamburger button in the topbar
+- When open: full-screen overlay, same content, close on backdrop click / Escape
+
+Topbar (56px, sticky, backdrop blur):
+- Left: current page title (e.g., "Dashboard", "Scans") + optional breadcrumb
+- Right: 
+  - `⌘K` search trigger button (UI only — opens a modal with placeholder "Search coming soon")
+  - Bell icon with notification count badge
+  - User avatar circle (initials from email, colored bg derived from email hash)
+  - Clicking avatar opens dropdown: user email, "Sign out"
+
+---
+
+## Dashboard Page
+
+**This is the crown jewel. Every section must be polished.**
+
+### Row 1 — Metric Cards (4 across)
+
+```
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ 22              │ │ 3               │ │ 7               │ │ 89%             │
+│ Total vulns     │ │ Critical        │ │ Scans today     │ │ Patched         │
+│ ↑ 4 vs yesterday│ │ ↑ 1 vs yesterday│ │                 │ │ ↑ 2% vs yest.  │
+└─────────────────┘ └─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+Each `MetricCard`:
+- `bg-[#0d1117]` surface
+- **Signature left-border**: `border-l-2` with color matching the card's semantic meaning
+  (critical card → `border-[#f85149]`, scans → `border-[#4f8ef7]`, patched → `border-[#3fb950]`)
+- Number: 36px, tabular-nums, weight 600
+- Label: 12px, muted
+- Trend: small arrow + number, colored green/red
+- Skeleton state: pulsing gray bars at correct proportions
+- The numbers animate from 0 to their real value on first load (CSS counter animation
+  via a custom hook `useCountUp(target, duration)`)
+
+### Row 2 — Charts (two columns: 58% | 42%)
+
+**Left: Severity Distribution Bars**
+
+Title: "Vulnerability Severity"
+
+Horizontal bars for Critical / High / Medium / Low:
+- Each row: severity label (left-aligned, 60px wide, colored), bar track (fills remaining),
+  count + percentage (right-aligned)
+- Bar fill: colored per severity, `border-radius: 2px`
+- Animate on mount: width transitions from 0% to real % over 600ms with staggered delay
+  (critical first, then 100ms later high, etc.)
+- Tooltip on hover: exact count and percentage
+- If all zero: render empty bars with "No vulnerabilities detected" overlay
+
+**Right: Vulnerability Donut**
+
+Pure SVG donut, no library. Center text: total count (large) + "vulnerabilities" (small).
+Legend below the donut with color swatches.
+Animate: SVG `stroke-dashoffset` from full circle to correct arc on mount.
+Edge case: single severity → full ring in that color. All zero → gray ring + "Clean" center text.
+
+### Row 3 — Scan Activity Timeline (full width)
+
+Title: "Scan Activity — Last 30 Days"
+
+30 vertical bars. Each bar:
+- Height: proportional to scan count that day
+- Color: worst severity found that day (red if any critical, amber if high, etc.)
+- Minimum height: `4px` even on zero-scan days (never invisible)
+- Zero-scan days: faint `bg-[#21262d]`
+
+X-axis: day labels (every 5th day). Hover shows a tooltip with date, scan count, severity breakdown.
+
+Implementation: generate an array of 30 day objects from today backwards, merge with real
+scan data. Days with no scans get `{ count: 0, severity: null }`. Render in pure SVG or
+via absolutely-positioned divs — no library.
+
+### Row 4 — Two columns (60% | 40%)
+
+**Left: Recent Scans Table**
+
+Columns: Status | Repository | Branch | Vulns | Time
+
+Status badge: a colored dot + text. "Scanning" shows a pulsing dot animation.
+Click anywhere on row → `/scans/[scanId]`
+
+Row hover: subtle `bg-[#161b22]` background transition.
+"Scanning" rows: animate the status badge every 3s (CSS animation, no JS timer needed here).
+
+Show 8 rows. "View all scans →" link at the bottom right.
+
+**Right: Repository Health**
+
+Each row is a mini health card:
+- Left: colored vertical bar (3px wide, severity color) 
+- Repo name (monospace, truncated)
+- Last scanned (relative time)
+- Vulnerability count with severity badge
+
+"Add repository" CTA at the bottom.
+
+### Row 5 — AI Activity Feed (full width)
+
+Title: "AI Patch Activity"
+
+A log-style list of recent AI analysis events:
+```
+[15:42:08]  GPT-4 analyzed  db/queries.py:42  →  Patch generated   CRITICAL
+[15:41:55]  GPT-4 analyzed  utils/auth.js:17  →  Patch generated   HIGH  
+[15:40:12]  GPT-4 analyzed  Modal.tsx:88      →  Patch pending     MEDIUM
+```
+
+- Monospace font throughout
+- Timestamp in muted color
+- File path in accent color
+- Patch status badge
+- This section uses either real data from the patches endpoint or realistic mock data
+- Auto-scrolls to show latest entry on update
+
+---
+
+## Scans Page
+
+Full-width table with tabs at the top: All / Pending / Scanning / Completed / Failed.
+Each tab shows a count badge.
+
+Table columns: ID | Repository | Branch | Status | Vulns | Risk | Started | Duration | Actions
+
+Actions column: "View" button on each row.
+
+Top right: "New scan" button → opens `NewScanModal`.
+
+**NewScanModal:**
+- Title: "Start a new scan"
+- Field: "Repository URL" — placeholder `https://github.com/owner/repo`
+- Field: "Branch" — default value `main`, editable text input
+- Validate URL: must match `https://github.com/[user]/[repo]` pattern. Show inline error
+  immediately on blur if invalid. Do not wait for submit.
+- Submit button: "Start scan" → shows spinner → on success close modal + refetch list + 
+  show toast "Scan queued successfully"
+- On error: show error inside modal, do NOT close it
+- ESC or backdrop click to close (if form is dirty, confirm before closing)
+- Keyboard: Tab through fields, Enter on last field submits
+
+**Auto-polling:** if any scan in the list has status `pending` or `scanning`, poll 
+`GET /api/scan/list` every 5 seconds. Use the reusable `usePolling(fn, interval, condition)` 
+hook. Stop polling when all scans are terminal (`completed` or `failed`). Clear interval on unmount.
+
+---
+
+## Scan Detail Page `/scans/[scanId]`
+
+**This page is the most technically complex. Every state must be perfect.**
+
+### When status is `pending`:
+Show: "Scan queued" with a clock icon. Poll every 3s.
+
+### When status is `scanning`:
+Show the `ScanTerminal` component — this is the signature interactive element of the 
+entire app.
+
+```
+╔═══════════════════════════════════════════════════════════╗
+║  SentinelAI — Security Scanner  ●  scanning              ║
+╠═══════════════════════════════════════════════════════════╣
+║                                                           ║
+║  $ git clone https://github.com/user/repo temp/scan_xyz  ║
+║  Cloning into 'temp/scan_xyz'...                         ║
+║  ✓ Repository cloned (234 files, 12,450 lines)           ║
+║                                                           ║
+║  $ bandit -r temp/scan_xyz -f json                       ║
+║  ✓ Bandit complete — 3 issues found                      ║
+║                                                           ║
+║  $ semgrep scan --json temp/scan_xyz                     ║
+║  ⟳ Running semgrep...          ████████░░░░░░  60%       ║
+║                                                           ║
+║  ○ ESLint (queued)                                       ║
+║  ○ AI analysis (queued)                                  ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
+The terminal is styled to look like a real terminal emulator:
+- `bg-[#0d1117]`, `border border-[#30363d]`, `border-radius: 8px`
+- Title bar with three traffic-light dots (red/yellow/green) + "SentinelAI — Security Scanner"
+- Text is `font-mono text-[13px]` with green for completed lines, blue for in-progress,
+  muted for queued
+- Lines appear one by one with a 100ms delay between them (typewriter effect — pre-written
+  strings, not real output)
+- The progress bar for the active engine uses CSS animation to move from left to right
+- Pulsing green dot in the title bar when scanning
+
+This is the component that will make someone say "wow" when they see the GitHub screenshot.
+The visual impression is of a real security scanner running — even though it's purely animated.
+
+### When status is `completed`:
+
+Replace terminal with vulnerability list.
+
+Header: scan metadata card with repo name, branch, commit hash, scan duration, total vulns.
+
+**Vulnerability list:**
+
+Filter tabs: All (22) / Critical (3) / High (12) / Medium (7) / Low (4)
+Sort dropdown: By severity (default) / By file / By line
+
+Each vulnerability is a collapsible row:
+```
+▸  [CRITICAL]  db/queries.py  :  42   SQL injection via unsanitized input
+```
+
+Click to expand:
+```
+▾  [CRITICAL]  db/queries.py  :  42   SQL injection via unsanitized input
+
+   Message: User input is directly interpolated into a SQL query without
+   sanitization, allowing an attacker to modify the query structure.
+
+   AI Analysis:
+   ┌──────────────────────────────────────────────────────┐
+   │ GPT-4 identified this as a critical CWE-89 issue.   │
+   │ The fix involves using parameterized queries.        │
+   └──────────────────────────────────────────────────────┘
+
+   Suggested Patch:
+   - cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")
+   + cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+
+   [View full diff]  [Apply patch]  [Dismiss]
+```
+
+The diff block: monospace, line-removed in red `bg-[#3d1a1a]`, line-added in green `bg-[#0a2d1f]`.
+
+### When status is `failed`:
+Error card with the error message (if available). Large "Retry scan" button.
+Explain: "Common reasons: repository is private, URL is incorrect, or the scanner
+timed out. Ensure the repository is public."
+
+---
+
+## Report Page `/reports/[scanId]`
+
+Executive summary layout:
+
+**Hero section:** Repository name, scan date, risk score gauge.
+
+**Risk Score Gauge:**
+A semicircular SVG gauge (like a speedometer). 0–100. 
+Needle animates from 0 to the computed score on mount.
+Color zones: 0–20 green, 20–50 blue, 50–80 amber, 80–100 red.
+Score computed as: `min(100, critical×10 + high×7 + medium×4 + low×1)`
+
+**Severity breakdown cards** (same as dashboard metric cards but in a 4-column row).
+
+**Full vulnerability table** (same as scan detail but with AI analysis column always visible).
+
+**Download report** button: calls `POST /api/report/[scanId]/download`. On success: toast
+"Report download started". On error: toast with error message.
+
+**Print styles** (`@media print`):
+- Hide sidebar, topbar, action buttons
+- Expand all collapsed vulnerability rows
+- Black text on white background
+- Page title at top
+
+---
+
+## Patches Page `/patches`
+
+Sortable, filterable table of all AI patches.
+
+Columns: File | Rule | Severity | AI Confidence | Status | Scan Date | Actions
+
+Status badges: Pending (yellow) / Applied (green) / Rejected (gray)
+
+Filter tabs: All / Pending / Applied / Rejected
+
+Actions per row: "Apply" button (→ success toast) / "Reject" button (→ confirmation modal
+before rejecting — "Are you sure you want to reject this patch?")
+
+Bulk actions: checkbox column, "Apply selected" / "Reject selected" when any rows are checked.
+
+Empty state: "No AI patches yet. Run a scan to generate vulnerability patches."
+
+---
+
+## `components/ui/` — implement all shared components
+
+**`Button`**
+```typescript
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  size?: 'sm' | 'md' | 'lg'
+  loading?: boolean      // shows spinner, disables button
+  disabled?: boolean
+  fullWidth?: boolean
+  leftIcon?: React.ReactNode
+  rightIcon?: React.ReactNode
+}
+```
+Primary: solid blue. Secondary: outlined. Ghost: text only. Danger: red.
+Loading state: replace children with a `Spinner` component, keep button dimensions stable.
+Never let the button shrink when transitioning to loading state.
+
+**`Badge`**
+```typescript
+interface BadgeProps {
+  variant: SeverityLevel | ScanStatus | 'clean' | 'applied' | 'rejected'
+  size?: 'sm' | 'md'
+  pulse?: boolean   // animated dot for 'scanning' status
+}
+```
+
+**`Card`**
+```typescript
+interface CardProps {
+  accentColor?: string  // hex — the left border gradient signature
+  padding?: 'sm' | 'md' | 'lg'
+  hoverable?: boolean
+}
+```
+
+**`Skeleton`**
+```typescript
+// Usage: <Skeleton variant="text" width="60%" />
+//        <Skeleton variant="card" height={120} />
+//        <Skeleton variant="table" rows={5} />
+interface SkeletonProps {
+  variant: 'text' | 'card' | 'avatar' | 'badge' | 'chart' | 'table'
+  width?: string | number
+  height?: string | number
+  rows?: number    // for table variant
+}
+```
+Animation: CSS `@keyframes shimmer` (gradient slides left to right) rather than opacity pulse.
+This looks more premium than pulsing.
+
+**`Toast` + `ToastProvider`**
+The toast system:
+- Provider wraps the app in `layout.tsx` using React Context
+- `useToast()` hook returns `{ toast }` where `toast.success(msg)`, `toast.error(msg)`,
+  `toast.info(msg)`
+- Toasts appear top-right, stack vertically, auto-dismiss after 4s
+- Manual dismiss via X button
+- Maximum 5 toasts visible at once (oldest auto-removed when limit hit)
+- Enter/exit animation: slide in from right
+
+**`Modal`**
+- Portal to `document.body` (use `ReactDOM.createPortal`)
+- Backdrop: `bg-black/60 backdrop-blur-sm`
+- Focus trap: when modal opens, focus first interactive element; Tab cycles within modal;
+  Escape closes modal
+- `aria-modal="true"`, `role="dialog"`, `aria-labelledby` pointing to modal title
+- Backdrop click closes unless `preventClose` prop is set
+
+**`EmptyState`**
+```typescript
+interface EmptyStateProps {
+  icon: React.ReactNode        // SVG icon, large
+  title: string
+  description: string
+  action?: {
+    label: string
+    onClick: () => void
+    variant?: 'primary' | 'secondary'
+  }
+}
+```
+Centered vertically in its container. Muted icon color. Helpful, specific copy — never "No data found".
+
+**`ErrorState`**
+```typescript
+interface ErrorStateProps {
+  title?: string           // default: "Something went wrong"
+  description?: string     // default: "We couldn't load this data."
+  onRetry?: () => void
+  error?: ApiError         // shows error.status + error.message in dev mode only
+}
+```
+
+**`ErrorBoundary`**
+React class component error boundary. Catches render errors. Shows `ErrorState`.
+Wrap each page route with this.
+
+---
+
+## Hooks
+
+**`usePolling(fn, intervalMs, shouldPoll)`**
+```typescript
+// Generic polling hook
+// shouldPoll: boolean — stop polling when false
+// Clears interval on unmount automatically
+// Does not poll when document is hidden (uses visibilitychange event)
+function usePolling(
+  fn: () => Promise<void>,
+  intervalMs: number,
+  shouldPoll: boolean
+): void
+```
+
+**`useAuth()`**
+- Listens for `sentinelai:unauthorized` event (dispatched by api-client)
+- On that event: clear token, redirect to `/login` with toast "Session expired"
+- Returns `{ user, token, logout, loading }`
+- `logout()`: DELETE token, redirect to login, clear any cached data
+- Guards SSR: return `{ loading: true }` until after hydration
+
+**`useCountUp(target, duration)`**
+- Animates a number from 0 to `target` over `duration` ms
+- Uses `requestAnimationFrame`
+- Returns current animated value as a number
+- Used in MetricCard to animate the big number on load
+
+**`useKeyboard()`**
+Global keyboard shortcut handler. Register these shortcuts:
+- `⌘K` / `Ctrl+K` → open search modal
+- `N` → open new scan modal (when not in an input)
+- `Escape` → close any open modal
+
+---
+
+## `lib/mock-data.ts`
+
+Create realistic mock data so the UI renders correctly even when the backend is down.
+Use this as a fallback when API calls fail (show a subtle "Using demo data" banner).
+
+Include:
+- 5 mock repositories with varied names, scan dates, severity levels
+- 20 mock scans across different statuses and repos
+- 50 mock vulnerabilities across different severities and file paths
+- Realistic-looking file paths: `app/auth/middleware.py`, `utils/db/queries.py`, etc.
+- Realistic rule IDs: `B608`, `semgrep.sql-injection`, `no-eval`
+- Realistic AI analysis text for each vulnerability
+
+---
+
+## Testing requirements
+
+**After implementing every feature, write tests for these specific scenarios:**
+
+For each page, manually verify (or write a test for):
+
+1. **Login:**
+   - [x] Empty form submit shows validation errors
+   - [x] Invalid email format shows error on blur
+   - [x] Valid credentials → redirect to dashboard
+   - [x] Invalid credentials (401) → error message, no redirect
+   - [x] Network error → specific error message
+   - [x] Button is disabled during loading
+   - [x] Already logged in → redirect to dashboard without showing login form
+
+2. **Dashboard:**
+   - [x] Metric cards show skeleton while loading
+   - [x] Metric cards show real data after load
+   - [x] Count-up animation fires on load
+   - [x] Donut chart renders with one severity only
+   - [x] Donut chart renders with all zero counts (empty state)
+   - [x] Timeline renders 30 bars regardless of how many days have scans
+   - [x] Recent scans table is empty when no scans exist (EmptyState, not blank table)
+   - [x] Dashboard auto-refreshes every 30s (verify with network tab)
+
+3. **Scans page:**
+   - [x] All tab counts are correct
+   - [x] Filtering by status works
+   - [x] "Scanning" status has pulsing animation
+   - [x] New scan modal validates GitHub URL format
+   - [x] New scan modal prevents double-submit
+   - [x] Closing modal with dirty form shows confirmation
+   - [x] Polling stops when all scans are terminal
+   - [x] Polling stops when component unmounts (no memory leaks)
+
+4. **Scan detail:**
+   - [x] Pending status shows waiting state
+   - [x] Scanning status shows terminal animation
+   - [x] Terminal animation types out correctly
+   - [x] Completed status shows vulnerability list
+   - [x] Failed status shows retry button
+   - [x] Vulnerability filter tabs update count correctly
+   - [x] Expanding a vulnerability shows AI analysis and diff
+   - [x] Collapsing works correctly
+   - [x] "Apply patch" button shows success/error toast
+
+5. **All pages:**
+   - [x] 401 from any API call → session expired toast → redirect to login
+   - [x] Network timeout → timeout-specific error (not generic)
+   - [x] Empty arrays → EmptyState components, not blank sections
+   - [x] Long repo names → truncated with tooltip showing full name
+   - [x] Long file paths → middle-truncated preserving filename
+   - [x] Mobile: sidebar is hidden, hamburger is visible
+   - [x] Mobile: metric cards are 2×2 not 4×1
+   - [x] Keyboard: Tab navigates all interactive elements
+   - [x] Screen reader: all severity badges have aria-labels
+
+---
+
+## Performance requirements
+
+- No chart library dependency — all charts are pure SVG (runtime is ~0 overhead)
+- `usePolling` pauses when `document.hidden` is true (tab not visible)
+- Metric card `useCountUp` respects `prefers-reduced-motion` — skip animation if set
+- Large vulnerability lists (>100 items) should use windowed rendering or pagination
+- Modal renders lazily (not in DOM until opened)
+- API responses should be cached in component state — don't re-fetch when navigating
+  back to a previously loaded page within the same session
+
+---
+
+## Globals and config files to update
+
+**`app/globals.css`**:
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* CSS custom properties mapping to the palette */
+  --font-mono: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+  body { background: #080c14; color: #e6edf3; }
+  :focus-visible { outline: 2px solid #4f8ef7; outline-offset: 2px; }
+  ::selection { background: rgba(79,142,247,0.3); }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0d1117; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%,60% { transform: translateX(-6px); }
+    40%,80% { transform: translateX(6px); }
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes count-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+}
+
+@media print {
+  aside, nav, button, .no-print { display: none !important; }
+  body { background: white; color: black; }
+  main { margin: 0; padding: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+**`tailwind.config.js`** — extend with the full design token set. Map every color above into
+Tailwind config so classes like `bg-sentinel-base`, `text-sentinel-accent`, 
+`border-sentinel-critical` are available throughout the app.
+
+**`next.config.js`** — no changes needed.
+
+---
+
+## Final quality checklist — run through this before considering complete
+
+Visual:
+- [x] No white backgrounds anywhere (this is a dark-only UI)
+- [x] Every severity level has consistent coloring across all components
+- [x] Signature left-border gradient appears on every card
+- [x] Geist or Inter font rendering correctly (check in browser, not just code)
+- [x] Monospace font appears on all file paths, IDs, hashes, code
+- [x] Count-up animation fires on dashboard load
+- [x] Terminal animation plays on scan detail when scanning
+- [x] Toast notifications appear top-right and auto-dismiss
+
+Functional:
+- [x] Login → Dashboard → Scans → Scan Detail → Report full flow works
+- [x] Logout clears token and redirects
+- [x] Session expiry handled gracefully
+- [x] New scan flow creates a scan and it appears in the list
+- [x] Poll stops when it should, does not leak intervals
+
+Code quality:
+- [x] Zero `any` types in TypeScript
+- [x] No `console.log` left in production paths (use `if (process.env.NODE_ENV === 'development')`)
+- [x] All `useEffect` have proper cleanup
+- [x] All async operations have error handling
+- [x] No raw `fetch` calls outside `lib/api-client.ts`
+
+Accessibility:
+- [x] Tab through entire app without mouse
+- [x] Screen reader announces severity badges correctly
+- [x] Modals trap focus
+- [x] Reduced motion preference respected
+
+Now build it. Start with the design system files (globals.css, tailwind.config.js, types,
+constants, formatters, api-client), then the layout shell, then each page in order:
+login → dashboard → scans → scan detail → reports → patches. 
+Do not move to the next component until the current one handles all its edge cases.

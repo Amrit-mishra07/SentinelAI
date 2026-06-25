@@ -1,17 +1,37 @@
-export function EmptyState({ icon, title, description, action }: { icon: string; title: string; description: string; action?: { label: string; onClick: () => void } }) {
+import React from 'react';
+import { Button } from './Button';
+
+interface EmptyStateProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary';
+  };
+}
+
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, action }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-900 border border-slate-800 rounded-lg">
-      <div className="text-4xl mb-4 opacity-50">{icon}</div>
-      <h3 className="text-lg font-medium text-slate-200">{title}</h3>
-      <p className="text-sm text-slate-400 mt-1 mb-6 max-w-sm">{description}</p>
+    <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[300px]">
+      <div className="text-sentinel-text-tertiary mb-4">
+        {icon}
+      </div>
+      <h3 className="text-16px font-medium text-sentinel-text-primary mb-2">
+        {title}
+      </h3>
+      <p className="text-[13px] text-sentinel-text-secondary mb-6 max-w-sm">
+        {description}
+      </p>
       {action && (
-        <button 
+        <Button 
+          variant={action.variant || 'primary'} 
           onClick={action.onClick}
-          className="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded transition-colors"
         >
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );
-}
+};

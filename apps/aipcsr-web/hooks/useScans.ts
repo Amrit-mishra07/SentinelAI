@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePolling } from '@/hooks/usePolling';
+import { api } from '@/lib/api-client';
 import { Scan } from '@/types';
-import { POLL_INTERVAL_SLOW } from '@/lib/constants';
+import { POLLING_INTERVAL } from '@/lib/constants';
 
 export function useScans() {
   const [scans, setScans] = useState<Scan[]>([]);
@@ -10,7 +11,7 @@ export function useScans() {
 
   const fetchScans = useCallback(async () => {
     try {
-      const data = await apiClient.get<Scan[]>('/scan/list');
+      const data = await api.get<Scan[]>('/scan/list');
       setScans(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
@@ -29,13 +30,8 @@ export function useScans() {
     fetchScans();
   }, [fetchScans]);
 
-  useEffect(() => {
-    const hasActiveScans = scans.some(s => s.status === 'pending' || s.status === 'scanning');
-    if (!hasActiveScans) return;
-
-    const interval = setInterval(fetchScans, POLL_INTERVAL_SLOW);
-    return () => clearInterval(interval);
-  }, [scans, fetchScans]);
+  const hasActiveScans = useMemo(() => scans.some(s => s.status === 'pending' || s.status === 'scanning'), [scans]);
+  usePolling(fetchScans, POLLING_INTERVAL, hasActiveScans);
 
   return { scans, loading, error, refetch: fetchScans };
 }

@@ -62,6 +62,7 @@ services:
     volumes:
       - ./apps/aipcsr-worker:/app
       - ./core:/core
+      - ./apps/aipcsr-api:/aipcsr-api
 
   web:
     build:
@@ -73,8 +74,6 @@ services:
       - "3000:3000"
     depends_on:
       - api
-    volumes:
-      - ./apps/aipcsr-web:/app
 
   nginx:
     image: nginx:alpine

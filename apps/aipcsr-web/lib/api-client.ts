@@ -1,108 +1,103 @@
-import { API_TIMEOUT } from './constants';
+export class RequestTimeoutError extends Error {
+  constructor(message = 'The server took too long to respond. Try again.') {
+    super(message);
+    this.name = 'RequestTimeoutError';
+  }
+}
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  detail?: string;
+
+  constructor(status: number, message: string, detail?: string) {
     super(message);
-    this.status = status;
     this.name = 'ApiError';
+    this.status = status;
+    this.detail = detail;
   }
 }
 
-async function fetchWithTimeout(resource: string, options: RequestInit = {}) {
-  const { timeout = API_TIMEOUT } = options as any;
+async function fetchWithTimeout(resource: RequestInfo, options: RequestInit = {}): Promise<Response> {
+  const { timeout = 30000 } = options as { timeout?: number };
   
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  
+
   const response = await fetch(resource, {
     ...options,
-    signal: controller.signal
+    signal: controller.signal  
   });
   clearTimeout(id);
-  
+
   return response;
 }
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-  if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
-  
-  let safeEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  if (!safeEndpoint.startsWith('/api')) safeEndpoint = `/api${safeEndpoint}`;
-  
-  const url = `${baseUrl}${safeEndpoint}`;
-  
-  const headers = new Headers(options.headers);
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
-  
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const url = `${baseUrl}${path}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
     if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+      headers['Authorization'] = `Bearer ${token}`;
     }
   }
-  
+
+  const startTime = Date.now();
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[API Request] ${method} ${url}`, body ? body : '');
+  }
+
   try {
-    const response = await fetchWithTimeout(url, { ...options, headers });
-    
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-      }
-      throw new ApiError(401, 'Unauthorized');
+    const response = await fetchWithTimeout(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const duration = Date.now() - startTime;
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API Response] ${method} ${url} - ${response.status} (${duration}ms)`);
     }
-    
+
     if (!response.ok) {
-      let message = 'An error occurred';
-      try {
-        const errorData = await response.json();
-        message = errorData.detail || errorData.message || message;
-      } catch (e) {
-        // Not JSON
+      if (response.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('sentinelai:unauthorized'));
       }
-      throw new ApiError(response.status, message);
+      
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { detail: response.statusText };
+      }
+
+      throw new ApiError(
+        response.status, 
+        errorData.detail || errorData.message || 'An error occurred during the request',
+        typeof errorData === 'string' ? errorData : JSON.stringify(errorData)
+      );
     }
+
+    // Attempt to parse JSON, if it's empty, return null
+    const text = await response.text();
+    return text ? JSON.parse(text) : (null as T);
     
-    // Avoid parsing JSON on 204 No Content
-    if (response.status === 204) {
-      return {} as T;
-    }
-    
-    return await response.json();
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      throw new ApiError(408, 'Request timeout');
-    }
-    if (process.env.NODE_ENV === 'development') {
-      console.error('API Error:', error);
+      throw new RequestTimeoutError();
     }
     throw error;
   }
 }
 
-export const apiClient = {
-  get: <T>(endpoint: string, options?: RequestInit) => 
-    request<T>(endpoint, { ...options, method: 'GET' }),
-  
-  post: <T>(endpoint: string, body?: any, options?: RequestInit) => 
-    request<T>(endpoint, { 
-      ...options, 
-      method: 'POST', 
-      body: body instanceof FormData ? body : JSON.stringify(body) 
-    }),
-    
-  put: <T>(endpoint: string, body?: any, options?: RequestInit) => 
-    request<T>(endpoint, { 
-      ...options, 
-      method: 'PUT', 
-      body: body instanceof FormData ? body : JSON.stringify(body) 
-    }),
-    
-  delete: <T>(endpoint: string, options?: RequestInit) => 
-    request<T>(endpoint, { ...options, method: 'DELETE' }),
+export const api = {
+  get: <T>(path: string) => request<T>('GET', path),
+  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
+  delete: <T>(path: string) => request<T>('DELETE', path),
 };
