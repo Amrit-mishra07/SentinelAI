@@ -32,7 +32,7 @@ export const RepositoriesPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
               <thead>
-                <tr className="border-b border-sentinel-border text-[11px] uppercase tracking-wider text-sentinel-text-secondary bg-sentinel-base/50">
+                <tr className="border-b border-sentinel-border text-[14px] font-medium text-sentinel-text-secondary bg-sentinel-base/50">
                   <th className="px-6 py-4 font-medium">Repository</th>
                   <th className="px-6 py-4 font-medium">Default Branch</th>
                   <th className="px-6 py-4 font-medium">Last Scanned</th>
