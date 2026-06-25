@@ -17,6 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+import { ThemeProvider } from "../components/ui/ThemeProvider";
+
 export const metadata: Metadata = {
   title: "SentinelAI — Security Scanner",
   description: "AI-powered security code review platform",
@@ -30,13 +32,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased min-h-screen bg-sentinel-base text-sentinel-text-primary">
-        <ToastProvider>
-          <ErrorBoundary>
-            <AppShell>
-              {children}
-            </AppShell>
-          </ErrorBoundary>
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <ErrorBoundary>
+              <AppShell>
+                {children}
+              </AppShell>
+            </ErrorBoundary>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

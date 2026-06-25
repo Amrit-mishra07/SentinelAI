@@ -9,6 +9,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  const toastError = toast.error;
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
@@ -39,7 +40,7 @@ export function useAuth() {
 
     // Listen for unauthorized event dispatched by api-client
     const handleUnauthorized = () => {
-      toast.error('Session expired. Please log in again.');
+      toastError('Session expired. Please log in again.');
       logout();
     };
 
@@ -48,7 +49,7 @@ export function useAuth() {
     return () => {
       window.removeEventListener('sentinelai:unauthorized', handleUnauthorized);
     };
-  }, [logout, toast]);
+  }, [logout, toastError]);
 
   return { user, token, logout, loading };
 }

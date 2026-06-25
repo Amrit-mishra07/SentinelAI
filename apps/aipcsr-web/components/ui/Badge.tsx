@@ -37,7 +37,7 @@ export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, class
       aria-label={`Severity: ${label}`}
     >
       {pulse && (
-        <span className="mr-1.5 flex h-1.5 w-1.5">
+        <span className="relative mr-1.5 flex h-1.5 w-1.5">
           <span className="animate-pulse-dot absolute inline-flex h-1.5 w-1.5 rounded-full bg-current opacity-75"></span>
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
         </span>
