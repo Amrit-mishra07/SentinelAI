@@ -1,5 +1,8 @@
 import React from 'react';
 import { useCountUp } from '../../hooks/useCountUp';
+import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface MetricCardProps {
   title: string;
@@ -18,41 +21,53 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   
   const isPositiveTrend = trend > 0;
   const isNeutralTrend = trend === 0;
-  const trendColor = isPositiveTrend ? 'text-sentinel-critical' : isNeutralTrend ? 'text-sentinel-text-secondary' : 'text-sentinel-completed';
-  const trendIcon = isPositiveTrend ? '↑' : isNeutralTrend ? '−' : '↓';
+  const trendColor = isPositiveTrend ? 'text-sentinel-critical' : isNeutralTrend ? 'text-sentinel-text-secondary' : 'text-sentinel-clean';
+  const TrendIcon = isPositiveTrend ? TrendingUp : isNeutralTrend ? Minus : TrendingDown;
 
   if (loading) {
     return (
       <div 
-        className="bg-sentinel-panel rounded-lg border border-sentinel-border p-5 relative overflow-hidden"
-        style={{ borderLeft: `2px solid ${accentColor}` }}
+        className="glass-card rounded-xl border border-white/5 p-5 relative overflow-hidden"
+        style={{ borderLeft: `3px solid ${accentColor}` }}
       >
-        <div className="animate-shimmer bg-[#1c2333] h-[36px] w-16 mb-2 rounded bg-gradient-to-r from-[#1c2333] via-[#21262d] to-[#1c2333] bg-[length:400%_100%]" />
-        <div className="animate-shimmer bg-[#1c2333] h-[16px] w-24 mb-4 rounded bg-gradient-to-r from-[#1c2333] via-[#21262d] to-[#1c2333] bg-[length:400%_100%]" />
-        <div className="animate-shimmer bg-[#1c2333] h-[14px] w-32 rounded bg-gradient-to-r from-[#1c2333] via-[#21262d] to-[#1c2333] bg-[length:400%_100%]" />
+        <div className="animate-pulse flex flex-col space-y-3">
+          <div className="h-9 bg-white/5 rounded w-16" />
+          <div className="h-3 bg-white/5 rounded w-24" />
+          <div className="h-3 bg-white/5 rounded w-32 mt-4" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div 
-      className="bg-sentinel-panel rounded-lg border border-sentinel-border p-5 relative"
-      style={{ borderLeft: `2px solid ${accentColor}` }}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="glass-card rounded-xl border border-white/5 p-5 relative overflow-hidden group hover:border-white/10 transition-colors"
+      style={{ borderLeft: `3px solid ${accentColor}` }}
     >
-      <div className="text-[36px] font-semibold tabular-nums leading-none text-sentinel-text-primary mb-1">
+      {/* Subtle glow effect behind the card matching accent color */}
+      <div 
+        className="absolute -top-10 -right-10 w-32 h-32 blur-[50px] opacity-20 group-hover:opacity-30 transition-opacity rounded-full pointer-events-none"
+        style={{ backgroundColor: accentColor }}
+      />
+      
+      <div className="text-4xl font-semibold tabular-nums tracking-tight text-white mb-1 drop-shadow-sm">
         {animatedValue}{suffix}
       </div>
-      <div className="text-[10px] font-medium text-sentinel-text-secondary tracking-[0.08em] uppercase mb-4">
+      <div className="text-[11px] font-semibold text-sentinel-text-secondary tracking-widest uppercase mb-4">
         {title}
       </div>
-      <div className="flex items-center text-[12px]">
-        <span className={`font-medium mr-1.5 ${trendColor}`}>
-          {trendIcon} {Math.abs(trend)}{suffix}
+      <div className="flex items-center text-xs">
+        <span className={cn("font-medium mr-1.5 flex items-center", trendColor)}>
+          <TrendIcon className="w-3 h-3 mr-1" strokeWidth={3} />
+          {Math.abs(trend)}{suffix}
         </span>
         <span className="text-sentinel-text-tertiary">
           {trendLabel}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -1,25 +1,27 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { SeverityLevel, ScanStatus } from '../../types';
+import { cn } from '../../lib/utils';
 
-interface BadgeProps {
+export interface BadgeProps {
   variant: SeverityLevel | ScanStatus | 'clean' | 'applied' | 'rejected';
   size?: 'sm' | 'md';
   pulse?: boolean;
   className?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, className = '' }) => {
+export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, className }) => {
   const styles: Record<string, string> = {
-    critical: 'bg-sentinel-critical/10 text-sentinel-critical border-sentinel-critical/20',
-    high: 'bg-sentinel-high/10 text-sentinel-high border-sentinel-high/20',
-    medium: 'bg-sentinel-medium/10 text-sentinel-medium border-sentinel-medium/20',
-    low: 'bg-sentinel-low/10 text-sentinel-low border-sentinel-low/20',
-    clean: 'bg-sentinel-clean/10 text-sentinel-clean border-sentinel-clean/20',
-    scanning: 'bg-sentinel-scanning/10 text-sentinel-scanning border-sentinel-scanning/20',
-    pending: 'bg-sentinel-pending/10 text-sentinel-pending border-sentinel-pending/20',
-    failed: 'bg-sentinel-failed/10 text-sentinel-failed border-sentinel-failed/20',
-    completed: 'bg-sentinel-completed/10 text-sentinel-completed border-sentinel-completed/20',
-    applied: 'bg-sentinel-completed/10 text-sentinel-completed border-sentinel-completed/20',
+    critical: 'bg-sentinel-critical/10 text-sentinel-critical border-sentinel-critical/30 shadow-[0_0_10px_rgba(248,81,73,0.1)]',
+    high: 'bg-sentinel-high/10 text-sentinel-high border-sentinel-high/30',
+    medium: 'bg-sentinel-medium/10 text-sentinel-medium border-sentinel-medium/30',
+    low: 'bg-sentinel-low/10 text-sentinel-low border-sentinel-low/30',
+    clean: 'bg-sentinel-clean/10 text-sentinel-clean border-sentinel-clean/30',
+    scanning: 'bg-sentinel-scanning/10 text-sentinel-scanning border-sentinel-scanning/30 shadow-[0_0_10px_rgba(47,129,247,0.1)]',
+    pending: 'bg-sentinel-pending/10 text-sentinel-pending border-sentinel-pending/30',
+    failed: 'bg-sentinel-failed/10 text-sentinel-failed border-sentinel-failed/30',
+    completed: 'bg-sentinel-completed/10 text-sentinel-completed border-sentinel-completed/30',
+    applied: 'bg-sentinel-completed/10 text-sentinel-completed border-sentinel-completed/30',
     rejected: 'bg-sentinel-text-tertiary/10 text-sentinel-text-secondary border-sentinel-border-muted',
   };
 
@@ -32,8 +34,15 @@ export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, class
   const label = variant.charAt(0).toUpperCase() + variant.slice(1);
 
   return (
-    <span 
-      className={`inline-flex items-center rounded-full border font-medium tracking-wide ${badgeColor} ${sizes[size]} ${className}`}
+    <motion.span 
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={cn(
+        'inline-flex items-center rounded-full border font-medium tracking-wide',
+        badgeColor,
+        sizes[size],
+        className
+      )}
       aria-label={`Severity: ${label}`}
     >
       {pulse && (
@@ -43,6 +52,6 @@ export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, class
         </span>
       )}
       {label}
-    </span>
+    </motion.span>
   );
 };

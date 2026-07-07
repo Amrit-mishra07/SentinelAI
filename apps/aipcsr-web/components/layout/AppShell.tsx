@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { usePathname } from 'next/navigation';
+import { CommandPalette } from '../ui/CommandPalette';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,12 +22,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <div className="flex-1 flex flex-col min-w-0 transition-all duration-200 md:ml-[220px]">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 overflow-auto py-6 px-8">
-          <div className="w-full">
+        <main className="flex-1 overflow-auto py-6 px-4 md:px-8">
+          <div className="w-full max-w-7xl mx-auto">
             {children}
           </div>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 };

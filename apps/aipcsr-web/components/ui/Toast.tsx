@@ -1,4 +1,7 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -15,44 +18,52 @@ interface ToastProps {
 
 export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   const icons = {
-    success: (
-      <svg className="w-5 h-5 text-sentinel-completed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-    ),
-    error: (
-      <svg className="w-5 h-5 text-sentinel-critical" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    ),
-    info: (
-      <svg className="w-5 h-5 text-sentinel-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )
+    success: <CheckCircle2 className="w-5 h-5 text-sentinel-clean" />,
+    error: <AlertCircle className="w-5 h-5 text-sentinel-critical" />,
+    info: <Info className="w-5 h-5 text-sentinel-accent" />
   };
 
   return (
-    <div className="flex items-start w-full max-w-sm bg-sentinel-panel border border-sentinel-border shadow-lg rounded-lg p-4 animate-slide-in-right pointer-events-auto">
+    <motion.div 
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className={cn(
+        "flex items-start w-full max-w-sm glass pointer-events-auto",
+        "border shadow-xl rounded-xl p-4 overflow-hidden relative",
+        toast.type === 'error' ? 'border-sentinel-critical/30 shadow-[0_4px_30px_rgba(248,81,73,0.15)]' : 'border-white/10'
+      )}
+    >
       <div className="flex-shrink-0 mt-0.5">
         {icons[toast.type]}
       </div>
       <div className="ml-3 w-0 flex-1 pt-0.5">
-        <p className="text-[13px] font-medium text-sentinel-text-primary">
+        <p className="text-sm font-medium text-sentinel-text-primary leading-snug">
           {toast.message}
         </p>
       </div>
       <div className="ml-4 flex-shrink-0 flex">
         <button
-          className="bg-transparent rounded-md inline-flex text-sentinel-text-secondary hover:text-sentinel-text-primary focus:outline-none focus:ring-2 focus:ring-sentinel-accent"
+          className="bg-transparent rounded-md inline-flex text-sentinel-text-secondary hover:text-white focus:outline-none focus:ring-2 focus:ring-sentinel-accent transition-colors"
           onClick={() => onDismiss(toast.id)}
         >
           <span className="sr-only">Close</span>
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="h-4 w-4" />
         </button>
       </div>
-    </div>
+      {/* Progress Bar indicator */}
+      <motion.div 
+        initial={{ scaleX: 1 }}
+        animate={{ scaleX: 0 }}
+        transition={{ duration: 4, ease: "linear" }}
+        style={{ originX: 0 }}
+        className={cn(
+          "absolute bottom-0 left-0 h-1 w-full",
+          toast.type === 'error' ? 'bg-sentinel-critical/50' : 
+          toast.type === 'success' ? 'bg-sentinel-clean/50' : 'bg-sentinel-accent/50'
+        )}
+      />
+    </motion.div>
   );
 };

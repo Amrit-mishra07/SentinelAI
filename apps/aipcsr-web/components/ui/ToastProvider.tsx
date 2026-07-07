@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Toast, ToastMessage, ToastType } from './Toast';
 
 interface ToastContextType {
@@ -17,13 +18,18 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const addToast = useCallback((type: ToastType, message: string) => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => {
+      // Prevent spam: if the exact same message is already showing, don't add it again.
+      if (prev.some(t => t.message === message)) return prev;
+      
       const updated = [...prev, { id, type, message }];
-      if (updated.length > 5) {
-        return updated.slice(updated.length - 5);
+      // Cap at 3 toasts to prevent screen clutter
+      if (updated.length > 3) {
+        return updated.slice(updated.length - 3);
       }
       return updated;
     });
 
+    // Auto-dismiss
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
@@ -40,10 +46,12 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <ToastContext.Provider value={{ success, error, info }}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none w-full max-w-sm sm:items-end">
-        {toasts.map((toast) => (
-          <Toast key={toast.id} toast={toast} onDismiss={dismissToast} />
-        ))}
+      <div className="fixed top-4 right-4 z-[100] flex flex-col space-y-3 pointer-events-none w-full max-w-sm sm:items-end px-4 sm:px-0">
+        <AnimatePresence>
+          {toasts.map((toast) => (
+            <Toast key={toast.id} toast={toast} onDismiss={dismissToast} />
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );
