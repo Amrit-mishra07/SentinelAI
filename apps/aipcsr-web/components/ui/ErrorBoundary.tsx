@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorState } from './ErrorState';
+import { ApiError } from '../../types';
 
 interface Props {
   children?: ReactNode;
@@ -33,8 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
             title="UI Error" 
             description="A rendering error occurred in this section."
             onRetry={() => this.setState({ hasError: false, error: undefined })}
-            // @ts-ignore
-            error={{ status: 500, message: this.state.error?.message, detail: this.state.error?.stack }}
+            error={{ status: 500, message: this.state.error?.message || '', detail: this.state.error?.stack } as ApiError}
           />
         </div>
       );

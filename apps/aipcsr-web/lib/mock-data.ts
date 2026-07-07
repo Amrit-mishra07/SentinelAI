@@ -31,32 +31,38 @@ export const mockDashboardData = {
     medium: 9,
     low: 4
   },
-  timeline: Array.from({ length: 30 }).map((_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    
-    // Generate some random looking data, with a spike recently
-    let count = Math.floor(Math.random() * 8);
-    let severity: SeverityLevel | null = null;
-    
-    if (count > 0) {
-      const rand = Math.random();
-      if (rand > 0.9) severity = 'critical';
-      else if (rand > 0.6) severity = 'high';
-      else if (rand > 0.3) severity = 'medium';
-      else severity = 'low';
-    } else if (i === 29) {
-      // Ensure today has data
-      count = 7;
-      severity = 'critical';
-    }
-    
-    return {
-      date: date.toISOString(),
-      count,
-      severity
-    };
-  }),
+  timeline: [
+    { date: "2026-05-27T00:00:00.000Z", count: 2, severity: "low" },
+    { date: "2026-05-28T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-05-29T00:00:00.000Z", count: 5, severity: "medium" },
+    { date: "2026-05-30T00:00:00.000Z", count: 1, severity: "high" },
+    { date: "2026-05-31T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-01T00:00:00.000Z", count: 3, severity: "low" },
+    { date: "2026-06-02T00:00:00.000Z", count: 2, severity: "medium" },
+    { date: "2026-06-03T00:00:00.000Z", count: 4, severity: "high" },
+    { date: "2026-06-04T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-05T00:00:00.000Z", count: 6, severity: "critical" },
+    { date: "2026-06-06T00:00:00.000Z", count: 1, severity: "low" },
+    { date: "2026-06-07T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-08T00:00:00.000Z", count: 2, severity: "medium" },
+    { date: "2026-06-09T00:00:00.000Z", count: 3, severity: "high" },
+    { date: "2026-06-10T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-11T00:00:00.000Z", count: 4, severity: "low" },
+    { date: "2026-06-12T00:00:00.000Z", count: 2, severity: "medium" },
+    { date: "2026-06-13T00:00:00.000Z", count: 1, severity: "high" },
+    { date: "2026-06-14T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-15T00:00:00.000Z", count: 5, severity: "critical" },
+    { date: "2026-06-16T00:00:00.000Z", count: 2, severity: "low" },
+    { date: "2026-06-17T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-18T00:00:00.000Z", count: 3, severity: "medium" },
+    { date: "2026-06-19T00:00:00.000Z", count: 4, severity: "high" },
+    { date: "2026-06-20T00:00:00.000Z", count: 0, severity: null },
+    { date: "2026-06-21T00:00:00.000Z", count: 2, severity: "low" },
+    { date: "2026-06-22T00:00:00.000Z", count: 1, severity: "medium" },
+    { date: "2026-06-23T00:00:00.000Z", count: 5, severity: "high" },
+    { date: "2026-06-24T00:00:00.000Z", count: 2, severity: "critical" },
+    { date: "2026-06-25T00:00:00.000Z", count: 7, severity: "critical" }
+  ] as { date: string; count: number; severity: SeverityLevel | null }[],
   recent_ai_activity: [
     { time: new Date(Date.now() - 1000 * 60 * 2).toISOString(), file: 'db/queries.py:42', status: 'Patch generated', severity: 'critical' as SeverityLevel },
     { time: new Date(Date.now() - 1000 * 60 * 15).toISOString(), file: 'utils/auth.js:17', status: 'Patch generated', severity: 'high' as SeverityLevel },

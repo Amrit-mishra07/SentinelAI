@@ -1,15 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { MetricCard } from './MetricCard';
-import { SeverityBars } from '../../components/charts/SeverityBars';
-import { DonutChart } from '../../components/charts/DonutChart';
-import { ScanTimeline } from '../../components/charts/ScanTimeline';
 import { RecentScansTable } from './RecentScansTable';
 import { RepositoryHealthList } from './RepositoryHealthList';
 import { AIActivityFeed } from './AIActivityFeed';
 import { SEVERITY_COLORS } from '../../lib/constants';
 import { mockDashboardData, mockScans, mockRepositories } from '../../lib/mock-data';
+
+// Dynamically import Recharts components to reduce initial main bundle size
+const SeverityBars = dynamic(() => import('../../components/charts/SeverityBars').then(mod => mod.SeverityBars), { 
+  ssr: false, 
+  loading: () => <div className="animate-pulse bg-white/5 w-full h-full rounded" /> 
+});
+const DonutChart = dynamic(() => import('../../components/charts/DonutChart').then(mod => mod.DonutChart), { 
+  ssr: false, 
+  loading: () => <div className="w-[160px] h-[160px] rounded-full border-[14px] border-white/5 animate-pulse" /> 
+});
+const ScanTimeline = dynamic(() => import('../../components/charts/ScanTimeline').then(mod => mod.ScanTimeline), { 
+  ssr: false, 
+  loading: () => <div className="animate-pulse bg-white/5 w-full h-full rounded" /> 
+});
 
 export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -65,7 +77,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Row 2 — Charts (58% | 42%) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="bg-sentinel-panel rounded-lg border border-sentinel-border p-6 lg:col-span-7">
+        <div className="glass-card rounded-xl border border-white/5 p-6 lg:col-span-7">
           <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-6">
             Vulnerability Severity
           </h3>
@@ -85,7 +97,7 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
         
-        <div className="bg-sentinel-panel rounded-lg border border-sentinel-border p-6 lg:col-span-5 flex flex-col">
+        <div className="glass-card rounded-xl border border-white/5 p-6 lg:col-span-5 flex flex-col">
           <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-2">
             Vulnerability Donut
           </h3>
@@ -100,7 +112,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Row 3 — Scan Activity Timeline */}
-      <div className="bg-sentinel-panel rounded-lg border border-sentinel-border p-6">
+      <div className="glass-card rounded-xl border border-white/5 p-6">
         <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-6">
           Scan Activity — Last 30 Days
         </h3>
@@ -117,7 +129,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Row 4 — Scans and Repos (60% | 40%) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="bg-sentinel-panel rounded-lg border border-sentinel-border p-6 lg:col-span-7 flex flex-col">
+        <div className="glass-card rounded-xl border border-white/5 p-6 lg:col-span-7 flex flex-col">
           <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-6">
             Recent Scans
           </h3>
@@ -135,7 +147,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-sentinel-panel rounded-lg border border-sentinel-border p-6 lg:col-span-5 flex flex-col h-full min-h-[400px]">
+        <div className="glass-card rounded-xl border border-white/5 p-6 lg:col-span-5 flex flex-col h-full min-h-[400px]">
           <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-6">
             Repository Health
           </h3>
@@ -152,7 +164,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Row 5 — AI Activity Feed */}
-      <div className="bg-sentinel-panel rounded-lg border border-sentinel-border p-6">
+      <div className="glass-card rounded-xl border border-white/5 p-6">
         <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-4 flex items-center">
           <svg className="w-5 h-5 mr-2 text-sentinel-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           AI Patch Activity

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useToast } from './useToast';
+import { useToastContext } from '../components/ui/ToastProvider';
 import { User } from '../types';
 
 export function useAuth() {
@@ -8,7 +8,13 @@ export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { toast } = useToast();
+  
+  // Safe extraction because this hook might be called outside Provider during SSR
+  let toastError = (msg: string) => console.error(msg);
+  try {
+    const { error } = useToastContext();
+    toastError = error;
+  } catch(e) {}
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
@@ -19,7 +25,6 @@ export function useAuth() {
   }, [router]);
 
   useEffect(() => {
-    // Hydrate state from localStorage on client mount
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
@@ -31,15 +36,11 @@ export function useAuth() {
           console.error('Failed to parse stored user', e);
         }
       }
-    } else {
-      // If no token, maybe redirect to login if we are in a protected route?
-      // Since AppShell wraps everything but /login, we could handle it here or in middleware.
     }
     setLoading(false);
 
-    // Listen for unauthorized event dispatched by api-client
     const handleUnauthorized = () => {
-      toast.error('Session expired. Please log in again.');
+      toastError('Session expired. Please log in again.');
       logout();
     };
 
@@ -48,7 +49,7 @@ export function useAuth() {
     return () => {
       window.removeEventListener('sentinelai:unauthorized', handleUnauthorized);
     };
-  }, [logout, toast]);
+  }, [logout, toastError]);
 
   return { user, token, logout, loading };
 }

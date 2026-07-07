@@ -5,5 +5,58 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --color-bg-base: #06090e;
+    --color-bg-panel: #0d1117;
+    --color-bg-elevated: #161b22;
+    --color-bg-inset: #0a0d14;
+    --color-border: #30363d;
+    --color-border-muted: #21262d;
+    --color-text-primary: #e6edf3;
+    --color-text-secondary: #8b949e;
+    --color-text-tertiary: #6e7681;
+    --color-accent: #2f81f7;
+    --color-accent-glow: rgba(47, 129, 247, 0.4);
+    --color-critical: #f85149;
+    --color-high: #ff7b72;
+    --color-medium: #d2a8ff;
+    --color-low: #79c0ff;
+    --color-clean: #3fb950;
+    --color-scanning: #2f81f7;
+    --color-pending: #8b949e;
+    --color-failed: #f85149;
+    --color-completed: #3fb950;
+  }
+
+  body {
+    @apply bg-sentinel-base text-sentinel-text-primary antialiased;
+  }
+
+  ::selection {
+    @apply bg-[#2f81f7]/30 text-white;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-sentinel-border-muted rounded-full border-[3px] border-solid border-sentinel-base;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-sentinel-border;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-[#0d1117]/60 backdrop-blur-md border border-white/5;
+  }
+  
+  .glass-card {
+    @apply bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 shadow-xl backdrop-blur-xl;
   }
 }

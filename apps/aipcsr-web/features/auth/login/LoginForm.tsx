@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
-import { useToast } from '../../../hooks/useToast';
-import { api, ApiError } from '../../../lib/api-client';
+import { useToastContext } from '../../../components/ui/ToastProvider';
+import { apiClient } from '../../../lib/api-client';
 import { AuthResponse } from '../../../types';
+import { motion } from 'framer-motion';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ export const LoginForm: React.FC = () => {
   const [shake, setShake] = useState(false);
   
   const router = useRouter();
-  const { toast } = useToast();
+  const { success, error: toastError } = useToastContext();
 
   const handleEmailBlur = () => {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -49,25 +50,27 @@ export const LoginForm: React.FC = () => {
     setLoading(true);
     try {
       const body = { email, password };
-      const response = await api.post<AuthResponse>('/api/auth/login', body);
+      const response = await apiClient.post<AuthResponse>('/api/auth/login', body);
       
-      localStorage.setItem('token', response.access_token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      // Success flash handled by UI, then redirect
-      toast.success('Login successful');
+      success('Login successful');
       setTimeout(() => {
         router.push('/dashboard');
       }, 300);
       
     } catch (err: any) {
       setShake(true);
-      setTimeout(() => setShake(false), 400); // Remove shake class after animation
+      setTimeout(() => setShake(false), 400);
       
-      if (err instanceof ApiError && err.status === 401) {
+      // If our interceptor threw it, err.original is the AxiosError
+      const is401 = err.original?.response?.status === 401;
+      
+      if (is401) {
         setErrors({ email: 'Invalid email or password' });
       } else {
-        toast.error(err.message || 'Connection failed. Check your internet connection.');
+        toastError(err.message || 'Connection failed. Check your internet connection.');
       }
     } finally {
       setLoading(false);
@@ -75,9 +78,11 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <form 
+    <motion.form 
+      animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
+      transition={{ duration: 0.4 }}
       onSubmit={handleSubmit} 
-      className={`space-y-5 ${shake ? 'animate-shake' : ''}`}
+      className="space-y-5"
       noValidate
     >
       <Input
@@ -109,6 +114,6 @@ export const LoginForm: React.FC = () => {
           Sign in
         </Button>
       </div>
-    </form>
+    </motion.form>
   );
 };

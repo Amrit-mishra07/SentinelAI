@@ -17,6 +17,7 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
   const [branch, setBranch] = useState('main');
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
   const { toast } = useToast();
 
   const validateUrl = (url: string) => {
@@ -69,9 +70,11 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
 
   const handleClose = () => {
     const isDirty = repoUrl.length > 0 || branch !== 'main';
-    if (isDirty && !window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+    if (isDirty && !showConfirm) {
+      setShowConfirm(true);
       return;
     }
+    setShowConfirm(false);
     onClose();
   };
 
@@ -80,9 +83,18 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
       isOpen={isOpen}
       onClose={handleClose}
       title="Start a new scan"
-      preventClose={loading}
+      preventClose={loading || showConfirm}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {showConfirm ? (
+        <div className="space-y-4">
+          <p className="text-sentinel-text-secondary text-[14px]">You have unsaved changes. Are you sure you want to close?</p>
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button variant="secondary" onClick={() => setShowConfirm(false)}>Stay</Button>
+            <Button variant="primary" onClick={() => { setShowConfirm(false); setRepoUrl(''); setBranch('main'); onClose(); }}>Discard & Close</Button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Repository URL"
           placeholder="https://github.com/owner/repo"
@@ -121,6 +133,7 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
           </Button>
         </div>
       </form>
+      )}
     </Modal>
   );
 };

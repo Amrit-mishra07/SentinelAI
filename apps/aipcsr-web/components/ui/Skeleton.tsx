@@ -1,6 +1,7 @@
 import React from 'react';
+import { cn } from '../../lib/utils';
 
-interface SkeletonProps {
+export interface SkeletonProps {
   variant: 'text' | 'card' | 'avatar' | 'badge' | 'chart' | 'table';
   width?: string | number;
   height?: string | number;
@@ -8,8 +9,8 @@ interface SkeletonProps {
   className?: string;
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({ variant, width, height, rows = 3, className = '' }) => {
-  const baseClasses = 'animate-shimmer bg-[#1c2333] bg-gradient-to-r from-[#1c2333] via-[#21262d] to-[#1c2333] bg-[length:400%_100%] rounded';
+export const Skeleton: React.FC<SkeletonProps> = ({ variant, width, height, rows = 3, className }) => {
+  const baseClasses = 'animate-shimmer bg-sentinel-elevated bg-gradient-to-r from-sentinel-elevated via-sentinel-border-muted to-sentinel-elevated bg-[length:400%_100%] rounded';
 
   const styles = () => {
     switch (variant) {
@@ -31,12 +32,12 @@ export const Skeleton: React.FC<SkeletonProps> = ({ variant, width, height, rows
   if (variant === 'table') {
     return (
       <div className="w-full space-y-4">
-        <div className={`${baseClasses} h-8 w-full rounded`} />
+        <div className={cn(baseClasses, "h-8 w-full rounded", className)} />
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex space-x-4">
-            <div className={`${baseClasses} h-4 w-1/4 rounded`} />
-            <div className={`${baseClasses} h-4 w-1/4 rounded`} />
-            <div className={`${baseClasses} h-4 w-1/2 rounded`} />
+            <div className={cn(baseClasses, "h-4 w-1/4 rounded")} />
+            <div className={cn(baseClasses, "h-4 w-1/4 rounded")} />
+            <div className={cn(baseClasses, "h-4 w-1/2 rounded")} />
           </div>
         ))}
       </div>
@@ -45,7 +46,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ variant, width, height, rows
 
   return (
     <div 
-      className={`${baseClasses} ${className}`}
+      className={cn(baseClasses, className)}
       style={styles()}
     />
   );

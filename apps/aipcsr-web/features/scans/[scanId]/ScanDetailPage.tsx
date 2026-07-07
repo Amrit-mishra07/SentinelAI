@@ -30,7 +30,7 @@ export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
       setLoading(false);
     }, 600);
 
-    let progressTimer: NodeJS.Timeout;
+    let progressTimer: NodeJS.Timeout | undefined;
 
     if (currentScan.status === 'pending') {
       progressTimer = setTimeout(() => {
