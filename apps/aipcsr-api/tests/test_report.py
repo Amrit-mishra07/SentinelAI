@@ -32,7 +32,9 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(autouse=True)
 def setup_db():
     db = TestingSessionLocal()
-    # clear
+    # clear all tables in reverse foreign key order to prevent IntegrityError
+    from app.models.vulnerability import Vulnerability
+    db.query(Vulnerability).delete()
     db.query(Report).delete()
     db.query(Scan).delete()
     db.query(Repository).delete()
