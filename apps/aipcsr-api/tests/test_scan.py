@@ -46,15 +46,20 @@ def setup_db():
     db.close()
     yield
 
-def test_create_scan():
+from unittest.mock import patch
+
+@patch("app.routers.scan.celery_client.send_task")
+def test_create_scan(mock_send_task):
     response = client.post("/api/scan/create", json={"repository": "repo-id"})
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
     assert data["repository"] == "repo-id"
     assert data["status"] == "pending"
+    mock_send_task.assert_called_once()
 
-def test_list_scans():
+@patch("app.routers.scan.celery_client.send_task")
+def test_list_scans(mock_send_task):
     # First create a scan
     client.post("/api/scan/create", json={"repository": "repo-id"})
     
