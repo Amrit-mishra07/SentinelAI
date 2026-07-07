@@ -20,6 +20,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   }, []);
 
   useEffect(() => {
+    if (isOpen && modalRef.current) {
+      const focusable = modalRef.current.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable) (focusable as HTMLElement).focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -27,12 +34,6 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
         onClose();
       }
     };
-
-    // Focus trap could be fully implemented here, for now basic focus:
-    if (modalRef.current) {
-      const focusable = modalRef.current.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (focusable) (focusable as HTMLElement).focus();
-    }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => {

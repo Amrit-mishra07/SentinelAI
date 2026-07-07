@@ -22,7 +22,7 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
 
   const validateUrl = (url: string) => {
     // Basic GitHub URL validation
-    const githubRegex = /^https:\/\/github\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)(\.git)?\/?$/;
+    const githubRegex = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(?:\.git)?\/?$/;
     if (!url) {
       setUrlError('Repository URL is required');
       return false;
