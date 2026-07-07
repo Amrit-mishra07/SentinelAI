@@ -1,24 +1,53 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RiskGauge } from './RiskGauge';
 import { MetricCard } from '../../dashboard/MetricCard';
 import { VulnerabilityList } from '../../scans/[scanId]/VulnerabilityList';
-import { mockDashboardData, mockScans } from '../../../lib/mock-data';
-import { mockVulnerabilities } from '../../../lib/mock-vulns';
 import { SEVERITY_COLORS } from '../../../lib/constants';
-import { computeRiskScore, formatRelative } from '../../../lib/formatters';
+import { computeRiskScore } from '../../../lib/formatters';
 import { Button } from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/useToast';
+import { apiClient } from '../../../lib/api-client';
+import { Scan, Vulnerability, SeverityCounts } from '../../../types';
 
 interface ReportPageProps {
   scanId: string;
 }
 
 export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
-  const scan = mockScans.find(s => s.id === scanId) || mockScans[1]; // fallback to completed scan
-  const riskScore = computeRiskScore(mockDashboardData.severity_distribution);
+  const [scan, setScan] = useState<Scan | null>(null);
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const scanRes = await apiClient.get(`/scan/${scanId}`);
+        setScan(scanRes.data);
+        
+        const reportRes = await apiClient.get(`/report/${scanId}`);
+        if (reportRes.data && reportRes.data.vulnerabilities) {
+          setVulnerabilities(reportRes.data.vulnerabilities);
+        }
+      } catch (err) {
+        toast.error('Failed to load report data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReport();
+  }, [scanId, toast]);
+
+  const severityCounts: SeverityCounts = {
+    critical: vulnerabilities.filter(v => v.severity === 'critical').length,
+    high: vulnerabilities.filter(v => v.severity === 'high').length,
+    medium: vulnerabilities.filter(v => v.severity === 'medium').length,
+    low: vulnerabilities.filter(v => v.severity === 'low').length,
+  };
+  
+  const riskScore = computeRiskScore(severityCounts);
 
   const handleDownload = () => {
     toast.info('Preparing report for download...');
@@ -26,6 +55,10 @@ export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
       toast.success('Report download started');
     }, 1500);
   };
+
+  if (loading || !scan) {
+    return <div className="p-12 text-center text-sentinel-text-secondary">Loading report...</div>;
+  }
 
   return (
     <div className="space-y-8 animate-slide-in-right max-w-5xl mx-auto pb-12" style={{ animationDuration: '0.4s' }}>
@@ -74,28 +107,28 @@ export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard
           title="Critical"
-          value={mockDashboardData.severity_distribution.critical}
+          value={severityCounts.critical}
           trend={0}
           trendLabel=""
           accentColor={SEVERITY_COLORS.critical}
         />
         <MetricCard
           title="High"
-          value={mockDashboardData.severity_distribution.high}
+          value={severityCounts.high}
           trend={0}
           trendLabel=""
           accentColor={SEVERITY_COLORS.high}
         />
         <MetricCard
           title="Medium"
-          value={mockDashboardData.severity_distribution.medium}
+          value={severityCounts.medium}
           trend={0}
           trendLabel=""
           accentColor={SEVERITY_COLORS.medium}
         />
         <MetricCard
           title="Low"
-          value={mockDashboardData.severity_distribution.low}
+          value={severityCounts.low}
           trend={0}
           trendLabel=""
           accentColor={SEVERITY_COLORS.low}
@@ -107,7 +140,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
         <h2 className="text-[18px] font-medium text-sentinel-text-primary mb-4 border-b border-sentinel-border pb-2">
           Detailed Findings
         </h2>
-        <VulnerabilityList vulnerabilities={mockVulnerabilities} />
+        <VulnerabilityList vulnerabilities={vulnerabilities} />
       </div>
 
     </div>

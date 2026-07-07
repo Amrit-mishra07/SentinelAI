@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { ScanStatus } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ScanStatus, Scan } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { NewScanModal } from './NewScanModal';
-import { mockScans } from '../../lib/mock-data';
 import { formatRelative, formatDuration, formatCommitHash } from '../../lib/formatters';
 import { usePolling } from '../../hooks/usePolling';
+import { apiClient } from '../../lib/api-client';
 import { Plus, SearchX, GitBranch, FolderGit2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -17,7 +17,23 @@ type Tab = 'all' | ScanStatus;
 export const ScansPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [scans, setScans] = useState(mockScans);
+  const [scans, setScans] = useState<Scan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchScans = async () => {
+    try {
+      const response = await apiClient.get('/scan/list');
+      setScans(response.data);
+    } catch (error) {
+      console.error('Failed to fetch scans:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchScans();
+  }, []);
 
   const filteredScans = useMemo(() => {
     if (activeTab === 'all') return scans;
@@ -37,9 +53,7 @@ export const ScansPage: React.FC = () => {
   const hasActiveScans = scans.some(s => s.status === 'pending' || s.status === 'scanning');
   
   usePolling(async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Polling] Fetching updated scans list...');
-    }
+    await fetchScans();
   }, 5000, hasActiveScans);
 
   const tabs: { id: Tab; label: string; count: number }[] = [
@@ -87,7 +101,9 @@ export const ScansPage: React.FC = () => {
       </div>
 
       <div className="glass-card border border-white/5 rounded-xl overflow-hidden shadow-xl">
-        {filteredScans.length === 0 ? (
+        {isLoading ? (
+          <div className="p-12 text-center text-sentinel-text-secondary">Loading scans...</div>
+        ) : filteredScans.length === 0 ? (
           <EmptyState 
             icon={<SearchX className="w-12 h-12 text-sentinel-text-tertiary" />}
             title="No scans found"
@@ -181,6 +197,7 @@ export const ScansPage: React.FC = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSuccess={() => {
+          fetchScans();
         }}
       />
     </div>

@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../hooks/useToast';
 import { Github, Key, Bell, Palette } from 'lucide-react';
+import { apiClient } from '../../lib/api-client';
 
 type SettingsTab = 'general' | 'integrations';
 
@@ -16,14 +17,41 @@ export const SettingsPage: React.FC = () => {
   const [openAiKey, setOpenAiKey] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (activeTab === 'integrations') {
+      const fetchIntegrations = async () => {
+        setFetching(true);
+        try {
+          const response = await apiClient.get('/auth/integrations');
+          if (response.data.has_github_token) setGithubToken('********');
+          if (response.data.has_openai_key) setOpenAiKey('********');
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setFetching(false);
+        }
+      };
+      fetchIntegrations();
+    }
+  }, [activeTab]);
 
   const handleSaveIntegrations = async () => {
     setLoading(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 800));
-    toast.success('Integration settings saved successfully');
-    setLoading(false);
+    try {
+      const payload: any = {};
+      if (githubToken && githubToken !== '********') payload.github_token = githubToken;
+      if (openAiKey && openAiKey !== '********') payload.openai_api_key = openAiKey;
+      
+      await apiClient.put('/auth/integrations', payload);
+      toast.success('Integration settings saved successfully');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save integrations');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tabs = [

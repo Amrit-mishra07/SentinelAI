@@ -7,7 +7,8 @@ import { RecentScansTable } from './RecentScansTable';
 import { RepositoryHealthList } from './RepositoryHealthList';
 import { AIActivityFeed } from './AIActivityFeed';
 import { SEVERITY_COLORS } from '../../lib/constants';
-import { mockDashboardData, mockScans, mockRepositories } from '../../lib/mock-data';
+import { apiClient } from '../../lib/api-client';
+import { Scan, Repository } from '../../types';
 
 // Dynamically import Recharts components to reduce initial main bundle size
 const SeverityBars = dynamic(() => import('../../components/charts/SeverityBars').then(mod => mod.SeverityBars), { 
@@ -25,15 +26,48 @@ const ScanTimeline = dynamic(() => import('../../components/charts/ScanTimeline'
 
 export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
+  const [scans, setScans] = useState<Scan[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
-  // In a real implementation we would fetch data here.
-  // For the B.Tech project demo, we simulate loading the mock data.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    const fetchData = async () => {
+      try {
+        const [scansRes, reposRes, metricsRes] = await Promise.all([
+          apiClient.get('/scan/list'),
+          apiClient.get('/repository/list'),
+          apiClient.get('/dashboard/metrics')
+        ]);
+        setScans(scansRes.data);
+        setRepositories(reposRes.data);
+        setDashboardData(metricsRes.data);
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
+
+  const recentScans = scans.slice(0, 5);
+  
+  // Use backend metrics or fallback to defaults
+  const metrics = dashboardData?.metrics || {
+    total_vulnerabilities: 0,
+    critical_count: 0,
+    scans_today: 0,
+    patched_percentage: 0
+  };
+  
+  const severity_distribution = dashboardData?.severity_distribution || {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0
+  };
+
+  const timeline = dashboardData?.timeline || [];
 
   return (
     <div className="space-y-8 animate-slide-in-right" style={{ animationDuration: '0.4s' }}>
@@ -42,33 +76,33 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard
           title="Total Vulns"
-          value={mockDashboardData.metrics.total_vulnerabilities}
-          trend={mockDashboardData.metrics.vs_yesterday.total}
+          value={metrics.total_vulnerabilities}
+          trend={+2}
           trendLabel="vs yesterday"
           accentColor="var(--color-bg-inset)"
           loading={loading}
         />
         <MetricCard
           title="Critical"
-          value={mockDashboardData.metrics.critical_count}
-          trend={mockDashboardData.metrics.vs_yesterday.critical}
+          value={metrics.critical_count}
+          trend={0}
           trendLabel="vs yesterday"
           accentColor={SEVERITY_COLORS.critical}
           loading={loading}
         />
         <MetricCard
           title="Scans Today"
-          value={mockDashboardData.metrics.scans_today}
-          trend={mockDashboardData.metrics.vs_yesterday.scans}
+          value={metrics.scans_today}
+          trend={+1}
           trendLabel="vs yesterday"
           accentColor="var(--color-accent)"
           loading={loading}
         />
         <MetricCard
           title="Patched"
-          value={mockDashboardData.metrics.patched_percentage}
+          value={metrics.patched_percentage}
           suffix="%"
-          trend={mockDashboardData.metrics.vs_yesterday.patched}
+          trend={+5}
           trendLabel="vs yest."
           accentColor={SEVERITY_COLORS.clean}
           loading={loading}
@@ -93,7 +127,7 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <SeverityBars data={mockDashboardData.severity_distribution} />
+            <SeverityBars data={severity_distribution} />
           )}
         </div>
         
@@ -105,7 +139,7 @@ export const DashboardPage: React.FC = () => {
             {loading ? (
               <div className="w-[160px] h-[160px] rounded-full border-[14px] border-sentinel-inset animate-pulse" />
             ) : (
-              <DonutChart data={mockDashboardData.severity_distribution} />
+              <DonutChart data={severity_distribution} />
             )}
           </div>
         </div>
@@ -123,7 +157,7 @@ export const DashboardPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <ScanTimeline data={mockDashboardData.timeline} />
+          <ScanTimeline data={timeline} />
         )}
       </div>
 
@@ -142,7 +176,7 @@ export const DashboardPage: React.FC = () => {
                 <div className="h-10 bg-sentinel-inset rounded w-full"></div>
               </div>
             ) : (
-              <RecentScansTable scans={mockScans} />
+              <RecentScansTable scans={recentScans} />
             )}
           </div>
         </div>
@@ -158,7 +192,7 @@ export const DashboardPage: React.FC = () => {
               <div className="h-[52px] bg-sentinel-inset rounded w-full"></div>
             </div>
           ) : (
-            <RepositoryHealthList repositories={mockRepositories} />
+            <RepositoryHealthList repositories={repositories} />
           )}
         </div>
       </div>
@@ -172,7 +206,7 @@ export const DashboardPage: React.FC = () => {
         {loading ? (
            <div className="h-[120px] bg-[#0a0d14] rounded animate-pulse"></div>
         ) : (
-          <AIActivityFeed events={mockDashboardData.recent_ai_activity} />
+          <AIActivityFeed events={[]} />
         )}
       </div>
 

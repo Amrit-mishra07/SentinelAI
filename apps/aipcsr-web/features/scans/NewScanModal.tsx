@@ -21,13 +21,14 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
   const { toast } = useToast();
 
   const validateUrl = (url: string) => {
-    // Basic GitHub URL validation
-    const githubRegex = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(?:\.git)?\/?$/;
+    // Lenient GitHub URL validation
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(\.git)?\/?$/;
     if (!url) {
       setUrlError('Repository URL is required');
       return false;
     }
-    if (!githubRegex.test(url)) {
+    const cleanUrl = url.trim();
+    if (!githubRegex.test(cleanUrl)) {
       setUrlError('Must be a valid GitHub URL (e.g., https://github.com/owner/repo)');
       return false;
     }
@@ -99,9 +100,13 @@ export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onS
           label="Repository URL"
           placeholder="https://github.com/owner/repo"
           value={repoUrl}
-          onChange={(e) => setRepoUrl(e.target.value)}
+          onChange={(e) => {
+            setRepoUrl(e.target.value);
+            if (urlError) setUrlError('');
+          }}
           onBlur={handleBlur}
           error={urlError}
+          autoFocus
           fullWidth
           disabled={loading}
         />

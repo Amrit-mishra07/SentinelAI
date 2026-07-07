@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ScanTerminal } from './ScanTerminal';
 import { VulnerabilityList } from './VulnerabilityList';
-import { Scan } from '../../../types';
+import { Scan, Vulnerability } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
-import { mockScans } from '../../../lib/mock-data';
-import { mockVulnerabilities } from '../../../lib/mock-vulns';
+import { apiClient } from '../../../lib/api-client';
 import { formatRelative, formatDuration, formatCommitHash } from '../../../lib/formatters';
 
 interface ScanDetailPageProps {
@@ -17,41 +16,38 @@ interface ScanDetailPageProps {
 
 export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
   const [scan, setScan] = useState<Scan | null>(null);
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Simulate fetching data and polling state transitions
-  useEffect(() => {
-    // Initial fetch
-    const currentScan = mockScans.find(s => s.id === scanId) || mockScans[0];
-    
-    // Simulate API delay
-    const initialTimer = setTimeout(() => {
-      setScan({ ...currentScan });
+  const fetchScanDetails = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get(`/scan/${scanId}`);
+      setScan(data);
+      if (data.status === 'completed') {
+        const reportRes = await apiClient.get(`/report/${scanId}`);
+        if (reportRes.data && reportRes.data.vulnerabilities) {
+          setVulnerabilities(reportRes.data.vulnerabilities);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
-    }, 600);
-
-    let progressTimer: NodeJS.Timeout | undefined;
-
-    if (currentScan.status === 'pending') {
-      progressTimer = setTimeout(() => {
-        setScan(prev => prev ? { ...prev, status: 'scanning' } : prev);
-        
-        // After scanning for a while, transition to completed
-        setTimeout(() => {
-          setScan(prev => prev ? { ...prev, status: 'completed', vulnerabilities_count: 3, severity: 'critical', completed_at: new Date().toISOString() } : prev);
-        }, 8000);
-      }, 3000);
-    } else if (currentScan.status === 'scanning') {
-      progressTimer = setTimeout(() => {
-        setScan(prev => prev ? { ...prev, status: 'completed', vulnerabilities_count: 3, severity: 'critical', completed_at: new Date().toISOString() } : prev);
-      }, 8000);
     }
-
-    return () => {
-      clearTimeout(initialTimer);
-      if (progressTimer) clearTimeout(progressTimer);
-    };
   }, [scanId]);
+
+  useEffect(() => {
+    fetchScanDetails();
+    
+    // Poll if scan is still active
+    const interval = setInterval(() => {
+      if (scan && (scan.status === 'pending' || scan.status === 'scanning')) {
+        fetchScanDetails();
+      }
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [scanId, scan?.status, fetchScanDetails]);
 
   if (loading || !scan) {
     return (
@@ -144,7 +140,7 @@ export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
         )}
 
         {scan.status === 'completed' && (
-          <VulnerabilityList vulnerabilities={mockVulnerabilities} />
+          <VulnerabilityList vulnerabilities={vulnerabilities} />
         )}
 
         {scan.status === 'failed' && (

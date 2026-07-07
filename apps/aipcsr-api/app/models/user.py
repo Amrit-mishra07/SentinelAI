@@ -10,6 +10,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
+    github_token = Column(String, nullable=True)
+    openai_api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def set_password(self, password: str):

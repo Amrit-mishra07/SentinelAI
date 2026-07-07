@@ -18,6 +18,7 @@ def scan_repository(self, scan_id: str, repository_url: str):
     from app.models.report import Report
     from app.models.vulnerability import Vulnerability
     from orchestrator import ScannerOrchestrator
+    from tasks.ai_analysis_task import analyze_with_ai
     
     db = SessionLocal()
     try:
@@ -50,15 +51,14 @@ def scan_repository(self, scan_id: str, repository_url: str):
             )
             db.add(vuln)
             
-        if scan:
-            scan.status = ScanStatus.COMPLETED
-            scan.completed_at = datetime.utcnow()
-            
         db.commit()
+        
+        # Trigger AI Analysis asynchronously
+        analyze_with_ai.delay(report_id, scan_id)
         
         return {
             "scan_id": scan_id,
-            "status": "completed",
+            "status": "scanning_complete_awaiting_ai",
             "vulnerabilities_found": len(vulnerabilities),
             "report_id": report_id
         }

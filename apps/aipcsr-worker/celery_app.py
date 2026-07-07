@@ -24,5 +24,6 @@ celery_app.conf.update(
 celery_app.conf.imports = (
     "tasks.scan_task",
     "tasks.ai_analysis_task",
-    "tasks.report_task"
+    "tasks.report_task",
+    "tasks.patch_task"
 )

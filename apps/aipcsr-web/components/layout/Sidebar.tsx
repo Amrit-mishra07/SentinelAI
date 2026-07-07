@@ -6,10 +6,12 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, FolderGit2, ShieldAlert, FileBarChart, Sparkles, Settings, ChevronRight, ShieldCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ProfileModal } from '../../features/auth/ProfileModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
   const [profileOpen, setProfileOpen] = React.useState(false);
+  const { user } = useAuth();
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-3" /> },
@@ -80,11 +82,11 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
             className="mt-2 flex items-center px-4 py-2 hover:bg-sentinel-elevated rounded-md cursor-pointer transition-colors group"
             onClick={() => setProfileOpen(true)}
           >
-            <div className="w-7 h-7 rounded-full bg-sentinel-accent/20 border border-sentinel-accent/50 flex items-center justify-center text-xs font-medium text-sentinel-accent mr-3">
-              AM
+            <div className="w-7 h-7 rounded-full bg-sentinel-accent/20 border border-sentinel-accent/50 flex items-center justify-center text-xs font-medium text-sentinel-accent mr-3 uppercase">
+              {user?.email?.substring(0, 2) || 'U'}
             </div>
             <span className="text-[13px] font-medium text-sentinel-text-secondary truncate max-w-[110px] group-hover:text-sentinel-text-primary transition-colors">
-              am@example.com
+              {user?.email || 'Administrator'}
             </span>
             <ChevronRight className="w-4 h-4 ml-auto text-sentinel-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

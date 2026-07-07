@@ -1,17 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mockRepositories } from '../../lib/mock-data';
 import { formatRelative } from '../../lib/formatters';
 import { ConnectRepoModal } from './ConnectRepoModal';
 import { useToast } from '../../hooks/useToast';
+import { apiClient } from '../../lib/api-client';
+import { Repository } from '../../types';
 
 export const RepositoriesPage: React.FC = () => {
-  const [connectModalOpen, setConnectModalOpen] = React.useState(false);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    fetchRepositories();
+  }, []);
+
+  const fetchRepositories = async () => {
+    try {
+      const response = await apiClient.get('/repository/list');
+      setRepositories(response.data);
+    } catch (error) {
+      toast.error('Failed to load repositories');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="space-y-6 animate-slide-in-right" style={{ animationDuration: '0.4s' }}>
       
@@ -27,7 +45,9 @@ export const RepositoriesPage: React.FC = () => {
       </div>
 
       <div className="bg-sentinel-panel border border-sentinel-border rounded-lg overflow-hidden shadow-sm">
-        {mockRepositories.length === 0 ? (
+        {isLoading ? (
+          <div className="p-12 text-center text-sentinel-text-secondary">Loading repositories...</div>
+        ) : repositories.length === 0 ? (
           <EmptyState 
             icon={<svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
             title="No repositories connected"
@@ -46,7 +66,7 @@ export const RepositoriesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockRepositories.map((repo) => (
+                {repositories.map((repo) => (
                   <tr 
                     key={repo.id} 
                     className="border-b border-sentinel-border/50 hover:bg-sentinel-elevated transition-colors"
@@ -98,7 +118,9 @@ export const RepositoriesPage: React.FC = () => {
       <ConnectRepoModal 
         isOpen={connectModalOpen} 
         onClose={() => setConnectModalOpen(false)} 
-        onSuccess={() => {}} 
+        onSuccess={() => {
+          fetchRepositories();
+        }} 
       />
     </div>
   );

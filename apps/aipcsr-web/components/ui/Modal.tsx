@@ -21,7 +21,8 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
   useEffect(() => {
     if (isOpen && modalRef.current) {
-      const focusable = modalRef.current.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      // Prioritize autofocus elements, then inputs, then buttons (avoiding close button if possible)
+      const focusable = modalRef.current.querySelector('[autofocus], input:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], select, [tabindex]:not([tabindex="-1"])');
       if (focusable) (focusable as HTMLElement).focus();
     }
   }, [isOpen]);

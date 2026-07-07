@@ -9,10 +9,11 @@ sys.path.insert(0, os.path.join(base_dir, 'core', 'ai-core'))
 from celery import shared_task
 
 @shared_task(bind=True)
-def analyze_with_ai(self, report_id: str):
+def analyze_with_ai(self, report_id: str, scan_id: str):
     """Analyze vulnerabilities using AI and generate patches"""
     from session import SessionLocal
     from app.models.vulnerability import Vulnerability
+    from app.models.scan import Scan, ScanStatus
     from providers.openai_provider import OpenAIProvider
     
     db = SessionLocal()
@@ -32,17 +33,33 @@ def analyze_with_ai(self, report_id: str):
             }
             analysis = provider.analyze_vulnerability(vuln_data)
             
+            # Save AI patch to DB
+            vuln.ai_patch_code = str(analysis)
+            
             analysis_results.append({
                 "vulnerability_id": vuln.id,
                 "analysis": analysis
             })
             
+        scan = db.query(Scan).filter(Scan.id == scan_id).first()
+        if scan:
+            from datetime import datetime
+            scan.status = ScanStatus.COMPLETED
+            scan.completed_at = datetime.utcnow()
+            
+        db.commit()
+            
         return {
             "report_id": report_id,
-            "analysis_count": len(analysis_results),
-            "results": analysis_results
+            "scan_id": scan_id,
+            "analysis_count": len(analysis_results)
         }
     except Exception as e:
+        db.rollback()
+        scan = db.query(Scan).filter(Scan.id == scan_id).first()
+        if scan:
+            scan.status = ScanStatus.FAILED
+            db.commit()
         self.update_state(state='FAILURE', meta={'error': str(e)})
         raise e
     finally:

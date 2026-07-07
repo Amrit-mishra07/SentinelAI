@@ -20,12 +20,13 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
   const { toast } = useToast();
 
   const validateUrl = (url: string) => {
-    const githubRegex = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(?:\.git)?\/?$/;
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(\.git)?\/?$/;
     if (!url) {
       setUrlError('Repository URL is required');
       return false;
     }
-    if (!githubRegex.test(url)) {
+    const cleanUrl = url.trim();
+    if (!githubRegex.test(cleanUrl)) {
       setUrlError('Must be a valid GitHub URL (e.g., https://github.com/owner/repo)');
       return false;
     }
@@ -75,9 +76,13 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
           label="Repository URL"
           placeholder="https://github.com/owner/repo"
           value={repoUrl}
-          onChange={(e) => setRepoUrl(e.target.value)}
+          onChange={(e) => {
+            setRepoUrl(e.target.value);
+            if (urlError) setUrlError('');
+          }}
           onBlur={handleBlur}
           error={urlError}
+          autoFocus
           fullWidth
           disabled={loading}
         />
