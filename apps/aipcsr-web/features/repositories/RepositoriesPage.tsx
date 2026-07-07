@@ -6,8 +6,12 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { mockRepositories } from '../../lib/mock-data';
 import { formatRelative } from '../../lib/formatters';
+import { ConnectRepoModal } from './ConnectRepoModal';
+import { useToast } from '../../hooks/useToast';
 
 export const RepositoriesPage: React.FC = () => {
+  const [connectModalOpen, setConnectModalOpen] = React.useState(false);
+  const { toast } = useToast();
   return (
     <div className="space-y-6 animate-slide-in-right" style={{ animationDuration: '0.4s' }}>
       
@@ -16,6 +20,7 @@ export const RepositoriesPage: React.FC = () => {
         
         <Button 
           leftIcon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
+          onClick={() => setConnectModalOpen(true)}
         >
           Connect repository
         </Button>
@@ -77,6 +82,7 @@ export const RepositoriesPage: React.FC = () => {
                       <Button 
                         variant="secondary" 
                         size="sm"
+                        onClick={() => toast.success(`Settings panel for ${repo.name} coming in Phase 2!`)}
                       >
                         Settings
                       </Button>
@@ -89,6 +95,11 @@ export const RepositoriesPage: React.FC = () => {
         )}
       </div>
 
+      <ConnectRepoModal 
+        isOpen={connectModalOpen} 
+        onClose={() => setConnectModalOpen(false)} 
+        onSuccess={() => {}} 
+      />
     </div>
   );
 };

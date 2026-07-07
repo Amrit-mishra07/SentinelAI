@@ -12,12 +12,13 @@ type FilterTab = 'all' | 'pending' | 'applied' | 'rejected';
 
 export const PatchesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [vulns, setVulns] = useState(mockVulnerabilities);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(new Set(mockVulnerabilities.map(v => v.id)));
+      setSelectedIds(new Set(vulns.map(v => v.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -33,26 +34,39 @@ export const PatchesPage: React.FC = () => {
   };
 
   const filtered = useMemo(() => {
-    if (activeTab === 'all') return mockVulnerabilities;
-    return mockVulnerabilities.filter(v => v.patch_status === activeTab);
-  }, [activeTab]);
+    if (activeTab === 'all') return vulns;
+    return vulns.filter(v => v.patch_status === activeTab);
+  }, [activeTab, vulns]);
 
   const tabs: { id: FilterTab; label: string; count: number }[] = [
-    { id: 'all', label: 'All', count: mockVulnerabilities.length },
-    { id: 'pending', label: 'Pending', count: mockVulnerabilities.filter(v => v.patch_status === 'pending').length },
-    { id: 'applied', label: 'Applied', count: mockVulnerabilities.filter(v => v.patch_status === 'applied').length },
-    { id: 'rejected', label: 'Rejected', count: mockVulnerabilities.filter(v => v.patch_status === 'rejected').length },
+    { id: 'all', label: 'All', count: vulns.length },
+    { id: 'pending', label: 'Pending', count: vulns.filter(v => v.patch_status === 'pending').length },
+    { id: 'applied', label: 'Applied', count: vulns.filter(v => v.patch_status === 'applied').length },
+    { id: 'rejected', label: 'Rejected', count: vulns.filter(v => v.patch_status === 'rejected').length },
   ];
 
   const handleBulkAction = (action: 'apply' | 'reject') => {
     if (selectedIds.size === 0) return;
     if (action === 'reject' && !window.confirm(`Are you sure you want to reject ${selectedIds.size} patches?`)) return;
+    
+    setVulns(prev => prev.map(v => {
+      if (selectedIds.has(v.id)) {
+        return { ...v, patch_status: action === 'apply' ? 'applied' : 'rejected' };
+      }
+      return v;
+    }));
+
     toast.success(`${selectedIds.size} patches ${action === 'apply' ? 'applied' : 'rejected'} successfully.`);
     setSelectedIds(new Set());
   };
 
   const handleRowAction = (action: 'apply' | 'reject', id: string) => {
     if (action === 'reject' && !window.confirm('Are you sure you want to reject this patch?')) return;
+    
+    setVulns(prev => prev.map(v => 
+      v.id === id ? { ...v, patch_status: action === 'apply' ? 'applied' : 'rejected' } : v
+    ));
+
     toast.success(`Patch ${action === 'apply' ? 'applied' : 'rejected'} successfully.`);
   };
 
