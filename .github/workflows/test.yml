@@ -9,6 +9,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: aipcsr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - name: Checkout code
@@ -23,11 +37,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r apps/aipcsr-api/requirements.txt
-        pip install pytest "httpx<0.28.0" pytest-asyncio
+        pip install pytest "httpx<0.28.0" pytest-asyncio alembic psycopg2-binary
 
     - name: Run API Tests
+      env:
+        DATABASE_URL: postgresql://user:password@localhost:5432/aipcsr
       run: |
-        cd apps/aipcsr-api
+        cd core/db-core
+        PYTHONPATH=../../ alembic upgrade head
+        cd ../../apps/aipcsr-api
         PYTHONPATH=../../core pytest tests/
 
     - name: Run Scanner Tests
