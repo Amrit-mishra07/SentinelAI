@@ -44,9 +44,9 @@ jobs:
         DATABASE_URL: postgresql://user:password@localhost:5432/aipcsr
       run: |
         cd core/db-core
-        PYTHONPATH=../../ alembic upgrade head
+        PYTHONPATH=../../apps/aipcsr-api alembic upgrade head
         cd ../../apps/aipcsr-api
-        PYTHONPATH=../../core pytest tests/
+        PYTHONPATH=.:../../core pytest tests/
 
     - name: Run Scanner Tests
       run: |
