@@ -42,7 +42,7 @@ async def create_scan(scan_data: ScanCreate, user_id: str = Depends(get_current_
 
 @router.get("/list", response_model=list[ScanResponse])
 async def list_scans(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    scans = db.query(Scan).join(Repository).filter(Repository.owner_id == user_id).order_by(Scan.created_at.desc()).all()
+    scans = db.query(Scan).join(Repository, Scan.repository_id == Repository.id).filter(Repository.owner_id == user_id).order_by(Scan.created_at.desc()).all()
     return [
         {
             "id": s.id,
@@ -55,7 +55,7 @@ async def list_scans(user_id: str = Depends(get_current_user), db: Session = Dep
 
 @router.get("/{scan_id}", response_model=ScanResponse)
 async def get_scan(scan_id: str, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    scan = db.query(Scan).join(Repository).filter(Scan.id == scan_id, Repository.owner_id == user_id).first()
+    scan = db.query(Scan).join(Repository, Scan.repository_id == Repository.id).filter(Scan.id == scan_id, Repository.owner_id == user_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
     

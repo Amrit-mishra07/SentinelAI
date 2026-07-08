@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("/{scan_id}")
 async def get_report(scan_id: str, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    scan = db.query(Scan).join(Repository).filter(Scan.id == scan_id, Repository.owner_id == user_id).first()
+    scan = db.query(Scan).join(Repository, Scan.repository_id == Repository.id).filter(Scan.id == scan_id, Repository.owner_id == user_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
         
@@ -49,7 +49,7 @@ async def download_report(scan_id: str, user_id: str = Depends(get_current_user)
 
 @router.post("/vulnerability/{id}/patch")
 async def apply_patch(id: str, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    vuln = db.query(Vulnerability).join(Report).join(Scan).join(Repository).filter(
+    vuln = db.query(Vulnerability).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
         Vulnerability.id == id, Repository.owner_id == user_id
     ).first()
     if not vuln:
@@ -68,7 +68,7 @@ async def apply_patch(id: str, user_id: str = Depends(get_current_user), db: Ses
 
 @router.post("/vulnerability/{id}/dismiss")
 async def dismiss_patch(id: str, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    vuln = db.query(Vulnerability).join(Report).join(Scan).join(Repository).filter(
+    vuln = db.query(Vulnerability).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
         Vulnerability.id == id, Repository.owner_id == user_id
     ).first()
     if not vuln:
