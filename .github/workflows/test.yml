@@ -23,6 +23,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - name: Checkout code
@@ -42,6 +51,7 @@ jobs:
     - name: Run API Tests
       env:
         DATABASE_URL: postgresql://user:password@127.0.0.1:5432/aipcsr
+        REDIS_URL: redis://127.0.0.1:6379
       run: |
         cd core/db-core
         PYTHONPATH=../../apps/aipcsr-api alembic upgrade head
@@ -51,6 +61,7 @@ jobs:
     - name: Run Scanner Tests
       env:
         DATABASE_URL: postgresql://user:password@127.0.0.1:5432/aipcsr
+        REDIS_URL: redis://127.0.0.1:6379
       run: |
         pip install bandit semgrep
         cd core
