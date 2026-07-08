@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY apps/aipcsr-worker/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt bandit semgrep
+RUN apt-get update && apt-get install -y build-essential libpq-dev gcc && \
+    pip install -U pip && \
+    pip install --no-cache-dir -r requirements.txt bandit semgrep
 
 COPY apps/aipcsr-worker/ .
 COPY core/ /core
