@@ -41,7 +41,7 @@ jobs:
 
     - name: Run API Tests
       env:
-        DATABASE_URL: postgresql://user:password@localhost:5432/aipcsr
+        DATABASE_URL: postgresql://user:password@127.0.0.1:5432/aipcsr
       run: |
         cd core/db-core
         PYTHONPATH=../../apps/aipcsr-api alembic upgrade head
@@ -49,6 +49,8 @@ jobs:
         PYTHONPATH=.:../../core pytest tests/
 
     - name: Run Scanner Tests
+      env:
+        DATABASE_URL: postgresql://user:password@127.0.0.1:5432/aipcsr
       run: |
         pip install bandit semgrep
         cd core
