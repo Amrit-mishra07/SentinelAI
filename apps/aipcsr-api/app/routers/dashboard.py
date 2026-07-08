@@ -15,18 +15,18 @@ router = APIRouter()
 async def get_dashboard_metrics(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
     # 1. Total Scans Today
     today = datetime.utcnow().date()
-    scans_today = db.query(func.count(Scan.id)).join(Repository).filter(
+    scans_today = db.query(func.count(Scan.id)).join(Repository, Scan.repository_id == Repository.id).filter(
         Repository.owner_id == user_id,
         func.date(Scan.created_at) == today
     ).scalar() or 0
 
     # 2. Total Vulnerabilities (for user's completed scans)
-    total_vulns = db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(
+    total_vulns = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
         Repository.owner_id == user_id
     ).scalar() or 0
 
     # 3. Critical Count
-    critical_count = db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(
+    critical_count = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
         Repository.owner_id == user_id,
         Vulnerability.severity == 'critical'
     ).scalar() or 0
@@ -34,13 +34,13 @@ async def get_dashboard_metrics(user_id: str = Depends(get_current_user), db: Se
     # 4. Severity Distribution
     severity_distribution = {
         "critical": critical_count,
-        "high": db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(Repository.owner_id == user_id, Vulnerability.severity == 'high').scalar() or 0,
-        "medium": db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(Repository.owner_id == user_id, Vulnerability.severity == 'medium').scalar() or 0,
-        "low": db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(Repository.owner_id == user_id, Vulnerability.severity == 'low').scalar() or 0,
+        "high": db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(Repository.owner_id == user_id, Vulnerability.severity == 'high').scalar() or 0,
+        "medium": db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(Repository.owner_id == user_id, Vulnerability.severity == 'medium').scalar() or 0,
+        "low": db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(Repository.owner_id == user_id, Vulnerability.severity == 'low').scalar() or 0,
     }
 
     # 5. Patched Percentage
-    total_patches = db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(
+    total_patches = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
         Repository.owner_id == user_id,
         Vulnerability.patch_status == 'applied'
     ).scalar() or 0
@@ -52,12 +52,12 @@ async def get_dashboard_metrics(user_id: str = Depends(get_current_user), db: Se
         date = (datetime.utcnow() - timedelta(days=i)).date()
         date_str = date.isoformat()
         
-        day_scans = db.query(func.count(Scan.id)).join(Repository).filter(
+        day_scans = db.query(func.count(Scan.id)).join(Repository, Scan.repository_id == Repository.id).filter(
             Repository.owner_id == user_id,
             func.date(Scan.created_at) == date
         ).scalar() or 0
         
-        day_vulns = db.query(func.count(Vulnerability.id)).join(Report).join(Scan).join(Repository).filter(
+        day_vulns = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
             Repository.owner_id == user_id,
             func.date(Vulnerability.created_at) == date
         ).scalar() or 0
