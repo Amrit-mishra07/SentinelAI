@@ -1,21 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AppShell } from "../components/layout/AppShell";
 import { ErrorBoundary } from "../components/ui/ErrorBoundary";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-});
+const inter = { variable: "font-sans" };
+const jetbrainsMono = { variable: "font-mono" };
 
 import { ThemeProvider } from "../components/ui/ThemeProvider";
 

@@ -54,6 +54,7 @@ export interface Vulnerability {
   ai_analysis?: string | null
   ai_patch?: string | null
   patch_status?: PatchStatus
+  pr_url?: string | null
 }
 
 export interface Report {

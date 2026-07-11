@@ -49,11 +49,24 @@ export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
   
   const riskScore = computeRiskScore(severityCounts);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     toast.info('Preparing report for download...');
-    setTimeout(() => {
-      toast.success('Report download started');
-    }, 1500);
+    try {
+      const response = await apiClient.get(`/report/${scanId}/download`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `SentinelAI_Report_${scanId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Report downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to download report PDF');
+    }
   };
 
   if (loading || !scan) {

@@ -48,6 +48,10 @@ def analyze_with_ai(self, report_id: str, scan_id: str):
             scan.completed_at = datetime.utcnow()
             
         db.commit()
+
+        # Trigger PDF compilation report task asynchronously
+        from tasks.report_task import generate_report
+        generate_report.delay(report_id)
             
         return {
             "report_id": report_id,
