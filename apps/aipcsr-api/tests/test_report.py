@@ -68,7 +68,16 @@ def test_get_report():
 
 def test_download_report():
     scan_id = "test-scan-123"
-    response = client.post(f"/api/report/{scan_id}/download")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "Report download started"
+    import os
+    os.makedirs("reports", exist_ok=True)
+    report_pdf = "reports/report_report1.pdf"
+    with open(report_pdf, "w") as f:
+        f.write("mock pdf content")
+        
+    try:
+        response = client.get(f"/api/report/{scan_id}/download")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+    finally:
+        if os.path.exists(report_pdf):
+            os.remove(report_pdf)
