@@ -5,7 +5,7 @@ import { useTheme } from '../../components/ui/ThemeProvider';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../hooks/useToast';
-import { Github, Key, Bell, Palette } from 'lucide-react';
+import { Key, Bell, Palette } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 
 type SettingsTab = 'general' | 'integrations';
@@ -159,7 +159,9 @@ export const SettingsPage: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="flex space-x-4">
                 <div className="mt-1">
-                  <Github className="w-6 h-6 text-sentinel-text-primary" />
+                  <svg className="w-6 h-6 text-sentinel-text-primary" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.29.1-2.67 0 0 .85-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.42.1 2.67.64.7 1.03 1.59 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />
+                  </svg>
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-sentinel-text-primary mb-1">GitHub Personal Access Token</h3>

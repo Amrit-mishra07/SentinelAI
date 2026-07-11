@@ -52,6 +52,26 @@ async def list_vulnerabilities(user_id: str = Depends(get_current_user), db: Ses
         })
     return resp
 
+@router.get("/list/all")
+async def list_all_reports(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    reports = db.query(Report).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id
+    ).order_by(Report.created_at.desc()).all()
+    
+    resp = []
+    for r in reports:
+        repo = db.query(Repository).join(Scan, Repository.id == Scan.repository_id).filter(Scan.id == r.scan_id).first()
+        repo_name = repo.name if repo else "Unknown"
+        resp.append({
+            "id": r.id,
+            "scan_id": r.scan_id,
+            "repository_name": repo_name,
+            "vulnerabilities_count": r.vulnerabilities_count,
+            "severity": r.severity.value if r.severity else "unknown",
+            "created_at": r.created_at
+        })
+    return resp
+
 @router.get("/{scan_id}")
 async def get_report(scan_id: str, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
     scan = db.query(Scan).join(Repository, Scan.repository_id == Repository.id).filter(Scan.id == scan_id, Repository.owner_id == user_id).first()
