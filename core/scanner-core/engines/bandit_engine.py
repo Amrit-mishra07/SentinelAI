@@ -14,7 +14,8 @@ class BanditEngine(BaseEngine):
             result = subprocess.run(
                 ["bandit", "-r", repository, "-f", "json"],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=10
             )
             
             # Bandit may exit with non-zero if vulns are found, but stdout still has json
