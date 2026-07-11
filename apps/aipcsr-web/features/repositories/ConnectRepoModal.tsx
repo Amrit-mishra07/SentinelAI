@@ -5,6 +5,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../hooks/useToast';
+import { apiClient } from '../../lib/api-client';
 
 interface ConnectRepoModalProps {
   isOpen: boolean;
@@ -49,8 +50,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
 
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(res => setTimeout(res, 800));
+      await apiClient.post('/repository/connect', { url: repoUrl, branch });
       
       toast.success('Repository connected successfully');
       onSuccess();

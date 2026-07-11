@@ -6,14 +6,14 @@ import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { useToastContext } from '../../../components/ui/ToastProvider';
 import { apiClient } from '../../../lib/api-client';
-import { AuthResponse } from '../../../types';
 import { motion } from 'framer-motion';
 
-export const LoginForm: React.FC = () => {
+export const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const [shake, setShake] = useState(false);
   
   const router = useRouter();
@@ -27,8 +27,16 @@ export const LoginForm: React.FC = () => {
     }
   };
 
+  const handleConfirmPasswordBlur = () => {
+    if (confirmPassword && confirmPassword !== password) {
+      setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+    } else {
+      setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+    }
+  };
+
   const validate = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string; confirmPassword?: string } = {};
     if (!email) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -37,6 +45,14 @@ export const LoginForm: React.FC = () => {
     
     if (!password) {
       newErrors.password = 'Password is required';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Confirm password is required';
+    } else if (confirmPassword !== password) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -50,25 +66,20 @@ export const LoginForm: React.FC = () => {
     setLoading(true);
     try {
       const body = { email, password };
-      const response = await apiClient.post<AuthResponse>('/auth/login', body);
+      await apiClient.post('/auth/register', body);
       
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      success('Login successful');
+      success('Registration successful. Please log in.');
       setTimeout(() => {
-        router.push('/dashboard');
-      }, 300);
+        router.push('/login');
+      }, 1000);
       
     } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 400);
       
-      // If our interceptor threw it, err.original is the AxiosError
-      const is401 = err.original?.response?.status === 401;
-      
-      if (is401) {
-        setErrors({ email: 'Invalid email or password' });
+      const is400 = err.original?.response?.status === 400;
+      if (is400) {
+        setErrors({ email: err.message || 'Email already registered' });
       } else {
         toastError(err.message || 'Connection failed. Check your internet connection.');
       }
@@ -103,7 +114,17 @@ export const LoginForm: React.FC = () => {
         onChange={(e) => setPassword(e.target.value)}
         error={errors.password}
         fullWidth
-        autoComplete="current-password"
+        autoComplete="new-password"
+      />
+      <Input
+        label="Confirm Password"
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        onBlur={handleConfirmPasswordBlur}
+        error={errors.confirmPassword}
+        fullWidth
+        autoComplete="new-password"
       />
       <div className="pt-2">
         <Button 
@@ -111,7 +132,7 @@ export const LoginForm: React.FC = () => {
           fullWidth 
           loading={loading}
         >
-          Sign in
+          Create account
         </Button>
       </div>
     </motion.form>

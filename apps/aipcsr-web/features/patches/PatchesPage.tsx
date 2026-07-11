@@ -1,24 +1,58 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useToast } from '../../hooks/useToast';
-import { mockVulnerabilities } from '../../lib/mock-vulns';
 import { formatRelative } from '../../lib/formatters';
+import { apiClient } from '../../lib/api-client';
+import { Loader2 } from 'lucide-react';
 
 type FilterTab = 'all' | 'pending' | 'applied' | 'rejected';
 
+interface Vulnerability {
+  id: string;
+  file_path: string;
+  rule_id: string;
+  message: string;
+  line_number: number | null;
+  severity: string;
+  ai_patch_code: string | null;
+  patch_status: string;
+  created_at: string;
+}
+
 export const PatchesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const [vulns, setVulns] = useState(mockVulnerabilities);
+  const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchVulnerabilities();
+  }, []);
+
+  const fetchVulnerabilities = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.get('/report/vulnerabilities/list');
+      // Filter to only show vulnerabilities that actually have an AI patch generated
+      const patchesOnly = response.data.filter((v: any) => v.ai_patch_code !== null && v.ai_patch_code !== '');
+      setVulns(patchesOnly);
+    } catch (error) {
+      toast.error('Failed to load patches');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(new Set(vulns.map(v => v.id)));
+      setSelectedIds(new Set(filtered.map(v => v.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -45,29 +79,42 @@ export const PatchesPage: React.FC = () => {
     { id: 'rejected', label: 'Rejected', count: vulns.filter(v => v.patch_status === 'rejected').length },
   ];
 
-  const handleBulkAction = (action: 'apply' | 'reject') => {
+  const handleBulkAction = async (action: 'apply' | 'reject') => {
     if (selectedIds.size === 0) return;
     if (action === 'reject' && !window.confirm(`Are you sure you want to reject ${selectedIds.size} patches?`)) return;
     
-    setVulns(prev => prev.map(v => {
-      if (selectedIds.has(v.id)) {
-        return { ...v, patch_status: action === 'apply' ? 'applied' : 'rejected' };
-      }
-      return v;
-    }));
-
-    toast.success(`${selectedIds.size} patches ${action === 'apply' ? 'applied' : 'rejected'} successfully.`);
-    setSelectedIds(new Set());
+    setBulkLoading(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => {
+        const endpoint = action === 'apply' ? `/report/vulnerability/${id}/patch` : `/report/vulnerability/${id}/dismiss`;
+        return apiClient.post(endpoint);
+      });
+      
+      await Promise.all(promises);
+      toast.success(`${selectedIds.size} patches ${action === 'apply' ? 'applied' : 'rejected'} successfully.`);
+      setSelectedIds(new Set());
+      await fetchVulnerabilities();
+    } catch (err: any) {
+      toast.error('Failed to perform bulk action');
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
-  const handleRowAction = (action: 'apply' | 'reject', id: string) => {
+  const handleRowAction = async (action: 'apply' | 'reject', id: string) => {
     if (action === 'reject' && !window.confirm('Are you sure you want to reject this patch?')) return;
     
-    setVulns(prev => prev.map(v => 
-      v.id === id ? { ...v, patch_status: action === 'apply' ? 'applied' : 'rejected' } : v
-    ));
-
-    toast.success(`Patch ${action === 'apply' ? 'applied' : 'rejected'} successfully.`);
+    setActionLoadingId(id);
+    try {
+      const endpoint = action === 'apply' ? `/report/vulnerability/${id}/patch` : `/report/vulnerability/${id}/dismiss`;
+      await apiClient.post(endpoint);
+      toast.success(`Patch ${action === 'apply' ? 'applied' : 'rejected'} successfully.`);
+      await fetchVulnerabilities();
+    } catch (err: any) {
+      toast.error(`Failed to ${action} patch`);
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   return (
@@ -101,10 +148,10 @@ export const PatchesPage: React.FC = () => {
             <span className="text-[13px] text-sentinel-text-secondary font-medium">
               {selectedIds.size} selected
             </span>
-            <Button variant="secondary" size="sm" onClick={() => handleBulkAction('reject')}>
+            <Button variant="secondary" size="sm" onClick={() => handleBulkAction('reject')} disabled={bulkLoading}>
               Reject selected
             </Button>
-            <Button variant="primary" size="sm" onClick={() => handleBulkAction('apply')}>
+            <Button variant="primary" size="sm" onClick={() => handleBulkAction('apply')} loading={bulkLoading}>
               Apply selected
             </Button>
           </div>
@@ -112,11 +159,16 @@ export const PatchesPage: React.FC = () => {
       </div>
 
       <div className="bg-sentinel-panel border border-sentinel-border rounded-lg overflow-hidden shadow-sm">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-sentinel-accent" />
+            <span className="text-sm text-sentinel-text-secondary">Loading patches...</span>
+          </div>
+        ) : filtered.length === 0 ? (
           <EmptyState 
             icon={<svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
-            title="No AI patches yet"
-            description="Run a scan to generate vulnerability patches."
+            title="No AI patches found"
+            description={activeTab === 'all' ? "Trigger a scan to automatically generate AI patches." : `No patches with status '${activeTab}'.`}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -156,6 +208,7 @@ export const PatchesPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 font-mono text-[13px] text-sentinel-text-primary">
                       {vuln.file_path}
+                      {vuln.line_number && <span className="text-sentinel-text-tertiary ml-1">:{vuln.line_number}</span>}
                     </td>
                     <td className="px-4 py-4 text-[13px] text-sentinel-text-secondary">
                       {vuln.rule_id}
@@ -166,9 +219,9 @@ export const PatchesPage: React.FC = () => {
                     <td className="px-4 py-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-16 h-1.5 bg-sentinel-inset rounded-full overflow-hidden">
-                          <div className="h-full bg-sentinel-completed" style={{ width: '92%' }} />
+                          <div className="h-full bg-sentinel-completed" style={{ width: '95%' }} />
                         </div>
-                        <span className="text-[12px] font-mono text-sentinel-text-secondary">92%</span>
+                        <span className="text-[12px] font-mono text-sentinel-text-secondary">95%</span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
@@ -181,7 +234,7 @@ export const PatchesPage: React.FC = () => {
                       <Button 
                         variant="secondary" 
                         size="sm"
-                        disabled={vuln.patch_status !== 'pending'}
+                        disabled={vuln.patch_status !== 'pending' || actionLoadingId === vuln.id}
                         onClick={() => handleRowAction('reject', vuln.id)}
                       >
                         Reject
@@ -190,6 +243,7 @@ export const PatchesPage: React.FC = () => {
                         variant="primary" 
                         size="sm"
                         disabled={vuln.patch_status !== 'pending'}
+                        loading={actionLoadingId === vuln.id}
                         onClick={() => handleRowAction('apply', vuln.id)}
                       >
                         Apply

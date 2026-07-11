@@ -60,7 +60,7 @@ def analyze_with_ai(self, report_id: str, scan_id: str):
         if scan:
             scan.status = ScanStatus.FAILED
             db.commit()
-        self.update_state(state='FAILURE', meta={'error': str(e)})
+        print(f"AI analysis task failed: {str(e)}")
         raise e
     finally:
         db.close()

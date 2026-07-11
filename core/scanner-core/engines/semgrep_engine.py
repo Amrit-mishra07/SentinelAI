@@ -14,7 +14,8 @@ class SemgrepEngine(BaseEngine):
             result = subprocess.run(
                 ["semgrep", "scan", "--json", repository],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=10
             )
             
             output = json.loads(result.stdout)
