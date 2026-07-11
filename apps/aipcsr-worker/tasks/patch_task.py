@@ -138,7 +138,14 @@ def apply_patch(self, vuln_id: str):
         }
     except Exception as e:
         db.rollback()
-        self.update_state(state='FAILURE', meta={'error': str(e)})
+        try:
+            vuln = db.query(Vulnerability).filter(Vulnerability.id == vuln_id).first()
+            if vuln:
+                vuln.patch_status = 'pending'
+                db.commit()
+        except:
+            pass
+        print(f"Apply patch task failed: {str(e)}")
         raise e
     finally:
         db.close()

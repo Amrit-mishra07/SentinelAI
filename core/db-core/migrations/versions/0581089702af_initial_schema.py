@@ -50,7 +50,6 @@ def upgrade() -> None:
 
     # --- scans ---
     scanstatus = sa.Enum('PENDING', 'SCANNING', 'COMPLETED', 'FAILED', name='scanstatus')
-    scanstatus.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         'scans',
@@ -69,7 +68,6 @@ def upgrade() -> None:
 
     # --- reports ---
     severitylevel = sa.Enum('CRITICAL', 'HIGH', 'MEDIUM', 'LOW', name='severitylevel')
-    severitylevel.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         'reports',

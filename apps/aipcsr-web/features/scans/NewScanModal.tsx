@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/ui/Modal';
-import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../hooks/useToast';
+import { apiClient } from '../../lib/api-client';
+import { Repository } from '../../types';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface NewScanModalProps {
   isOpen: boolean;
@@ -13,131 +15,127 @@ interface NewScanModalProps {
 }
 
 export const NewScanModal: React.FC<NewScanModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [repoUrl, setRepoUrl] = useState('');
-  const [branch, setBranch] = useState('main');
-  const [loading, setLoading] = useState(false);
-  const [urlError, setUrlError] = useState('');
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [selectedRepoId, setSelectedRepoId] = useState('');
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const validateUrl = (url: string) => {
-    // Lenient GitHub URL validation
-    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(\.git)?\/?$/;
-    if (!url) {
-      setUrlError('Repository URL is required');
-      return false;
+  useEffect(() => {
+    if (isOpen) {
+      fetchRepositories();
     }
-    const cleanUrl = url.trim();
-    if (!githubRegex.test(cleanUrl)) {
-      setUrlError('Must be a valid GitHub URL (e.g., https://github.com/owner/repo)');
-      return false;
-    }
-    setUrlError('');
-    return true;
-  };
+  }, [isOpen]);
 
-  const handleBlur = () => {
-    if (repoUrl) validateUrl(repoUrl);
+  const fetchRepositories = async () => {
+    setLoadingRepos(true);
+    try {
+      const response = await apiClient.get('/repository/list');
+      setRepositories(response.data);
+      if (response.data.length > 0) {
+        setSelectedRepoId(response.data[0].id);
+      }
+    } catch (error) {
+      toast.error('Failed to load repositories');
+    } finally {
+      setLoadingRepos(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
-    if (!validateUrl(repoUrl)) return;
-    if (!branch) {
-      toast.error('Branch is required');
-      return;
-    }
+    if (submitting || !selectedRepoId) return;
 
-    setLoading(true);
+    setSubmitting(true);
     try {
-      // In a real app we'd POST to the API here
-      // await api.post('/scan', { url: repoUrl, branch });
-      
-      // Simulate API call
-      await new Promise(res => setTimeout(res, 800));
-      
+      await apiClient.post('/scan/create', { repository: selectedRepoId });
       toast.success('Scan queued successfully');
       onSuccess();
-      onClose(); // Reset state is handled typically by unmounting or clearing here
-      setRepoUrl('');
-      setBranch('main');
+      onClose();
     } catch (err: any) {
       toast.error(err.message || 'Failed to start scan');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
-  };
-
-  const handleClose = () => {
-    const isDirty = repoUrl.length > 0 || branch !== 'main';
-    if (isDirty && !showConfirm) {
-      setShowConfirm(true);
-      return;
-    }
-    setShowConfirm(false);
-    onClose();
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={onClose}
       title="Start a new scan"
-      preventClose={loading || showConfirm}
+      preventClose={submitting}
     >
-      {showConfirm ? (
-        <div className="space-y-4">
-          <p className="text-sentinel-text-secondary text-[14px]">You have unsaved changes. Are you sure you want to close?</p>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="secondary" onClick={() => setShowConfirm(false)}>Stay</Button>
-            <Button variant="primary" onClick={() => { setShowConfirm(false); setRepoUrl(''); setBranch('main'); onClose(); }}>Discard & Close</Button>
+      {loadingRepos ? (
+        <div className="flex flex-col items-center justify-center py-8 space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-sentinel-accent" />
+          <span className="text-sm text-sentinel-text-secondary">Loading connected repositories...</span>
+        </div>
+      ) : repositories.length === 0 ? (
+        <div className="text-center py-6 space-y-4">
+          <div className="flex justify-center">
+            <AlertCircle className="w-12 h-12 text-sentinel-high/80" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-medium text-sentinel-text-primary">No repositories connected</h3>
+            <p className="text-xs text-sentinel-text-secondary max-w-xs mx-auto">
+              You must connect a GitHub repository before you can trigger a security scan.
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center space-x-3">
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                onClose();
+                // Navigate to repositories page or instruct user
+                window.location.href = '/repositories';
+              }}
+            >
+              Go to Repositories
+            </Button>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Repository URL"
-          placeholder="https://github.com/owner/repo"
-          value={repoUrl}
-          onChange={(e) => {
-            setRepoUrl(e.target.value);
-            if (urlError) setUrlError('');
-          }}
-          onBlur={handleBlur}
-          error={urlError}
-          autoFocus
-          fullWidth
-          disabled={loading}
-        />
-        
-        <Input
-          label="Branch"
-          placeholder="main"
-          value={branch}
-          onChange={(e) => setBranch(e.target.value)}
-          fullWidth
-          disabled={loading}
-        />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="flex flex-col space-y-1.5 w-full">
+            <label className="text-[13px] font-medium text-sentinel-text-secondary">
+              Select Repository
+            </label>
+            <select
+              value={selectedRepoId}
+              onChange={(e) => setSelectedRepoId(e.target.value)}
+              className="h-10 px-3 bg-sentinel-inset text-sentinel-text-primary border border-sentinel-border-muted rounded-md outline-none transition-shadow focus:ring-2 focus:ring-sentinel-accent/20 focus:border-sentinel-accent disabled:opacity-50 disabled:cursor-not-allowed w-full text-sm"
+              disabled={submitting}
+            >
+              {repositories.map((repo) => (
+                <option key={repo.id} value={repo.id}>
+                  {repo.name} ({repo.default_branch})
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="pt-4 flex justify-end space-x-3">
-          <Button 
-            variant="ghost" 
-            type="button" 
-            onClick={handleClose}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            loading={loading}
-            disabled={!!urlError}
-          >
-            Start scan
-          </Button>
-        </div>
-      </form>
+          <div className="pt-4 flex justify-end space-x-3">
+            <Button 
+              variant="ghost" 
+              type="button" 
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              loading={submitting}
+              disabled={!selectedRepoId}
+            >
+              Start scan
+            </Button>
+          </div>
+        </form>
       )}
     </Modal>
   );

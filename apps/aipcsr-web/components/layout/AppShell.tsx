@@ -10,8 +10,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  // Do not render shell for login page
-  if (pathname === '/login') {
+  // Do not render shell for login and register pages
+  if (pathname === '/login' || pathname === '/register') {
     return <>{children}</>;
   }
 
