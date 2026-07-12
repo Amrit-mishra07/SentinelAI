@@ -29,6 +29,7 @@ module.exports = {
           pending: 'var(--color-pending)',
           failed: 'var(--color-failed)',
           completed: 'var(--color-completed)',
+          warning: 'var(--color-warning)',
         }
       },
       fontFamily: {

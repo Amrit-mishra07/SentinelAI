@@ -41,14 +41,14 @@ export const ReportsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Reports</h1>
+          <h1 className="text-2xl font-bold text-sentinel-text-primary">Reports</h1>
           <p className="text-sm text-sentinel-text-secondary mt-1">
             Download or view security audit summaries and generated compliance reports.
           </p>
         </div>
       </div>
 
-      <div className="glass-card border border-white/5 rounded-xl overflow-hidden shadow-xl">
+      <div className="glass-card rounded-xl overflow-hidden shadow-xl">
         {isLoading ? (
           <div className="p-12 text-center text-sentinel-text-secondary">Loading reports...</div>
         ) : reports.length === 0 ? (
@@ -61,7 +61,7 @@ export const ReportsPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
               <thead>
-                <tr className="border-b border-white/5 text-xs uppercase tracking-wider font-semibold text-sentinel-text-secondary bg-sentinel-panel/50">
+                <tr className="border-b border-sentinel-border/30 text-xs uppercase tracking-wider font-semibold text-sentinel-text-secondary bg-sentinel-panel/50">
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Repository</th>
                   <th className="px-6 py-4">Vulnerabilities</th>
@@ -77,14 +77,14 @@ export const ReportsPage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: i * 0.05 }}
                     key={report.id} 
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors group"
+                    className="border-b border-sentinel-border/30 hover:bg-sentinel-inset/40 transition-colors group"
                   >
                     <td className="px-6 py-4">
                       <span className="font-mono text-xs text-sentinel-text-secondary">
                         #{report.id.substring(0, 6)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-[13px] text-white flex items-center">
+                    <td className="px-6 py-4 font-mono text-[13px] text-sentinel-text-primary flex items-center">
                       <FolderGit2 className="w-4 h-4 mr-2 text-sentinel-text-secondary" />
                       {report.repository_name}
                     </td>

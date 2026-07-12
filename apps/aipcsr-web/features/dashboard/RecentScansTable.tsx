@@ -28,10 +28,10 @@ export const RecentScansTable: React.FC<RecentScansTableProps> = ({ scans }) => 
 
   return (
     <div className="w-full">
-      <div className="overflow-x-auto rounded-lg border border-white/5 bg-sentinel-inset/30">
+      <div className="overflow-x-auto rounded-lg border border-sentinel-border/40 bg-sentinel-inset/30">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
-            <tr className="border-b border-white/5 text-xs tracking-wider uppercase font-semibold text-sentinel-text-secondary bg-sentinel-panel/50">
+            <tr className="border-b border-sentinel-border/30 text-xs tracking-wider uppercase font-semibold text-sentinel-text-secondary bg-sentinel-panel/50">
               <th className="px-5 py-4">Status</th>
               <th className="px-5 py-4">Repository</th>
               <th className="px-5 py-4">Branch</th>
@@ -46,7 +46,7 @@ export const RecentScansTable: React.FC<RecentScansTableProps> = ({ scans }) => 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
                 key={scan.id} 
-                className="border-b border-white/5 hover:bg-white/5 transition-colors group cursor-pointer"
+                className="border-b border-sentinel-border/30 hover:bg-sentinel-inset/40 transition-colors group cursor-pointer"
                 onClick={() => window.location.href = `/scans/${scan.id}`}
               >
                 <td className="px-5 py-3">

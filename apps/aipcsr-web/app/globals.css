@@ -25,6 +25,7 @@
     --color-pending: #8b949e;
     --color-failed: #f85149;
     --color-completed: #3fb950;
+    --color-warning: #d29922;
   }
 
   .light {
@@ -49,6 +50,7 @@
     --color-pending: #57606a;
     --color-failed: #cf222e;
     --color-completed: #1a7f37;
+    --color-warning: #9a6700;
   }
 
   body {
@@ -77,10 +79,17 @@
 
 @layer utilities {
   .glass {
-    @apply bg-[#0d1117]/60 backdrop-blur-md border border-white/5;
+    background-color: color-mix(in srgb, var(--color-bg-panel) 60%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
   }
   
   .glass-card {
-    @apply bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 shadow-xl backdrop-blur-xl;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--color-bg-panel) 80%, transparent), color-mix(in srgb, var(--color-bg-panel) 20%, transparent));
+    border: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
 }

@@ -100,7 +100,7 @@ export const ScansPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="glass-card border border-white/5 rounded-xl overflow-hidden shadow-xl">
+      <div className="glass-card rounded-xl overflow-hidden shadow-xl">
         {isLoading ? (
           <div className="p-12 text-center text-sentinel-text-secondary">Loading scans...</div>
         ) : filteredScans.length === 0 ? (
@@ -113,7 +113,7 @@ export const ScansPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
               <thead>
-                <tr className="border-b border-white/5 text-xs uppercase tracking-wider font-semibold text-sentinel-text-secondary bg-sentinel-panel/50">
+                <tr className="border-b border-sentinel-border/30 text-xs uppercase tracking-wider font-semibold text-sentinel-text-secondary bg-sentinel-panel/50">
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Repository</th>
                   <th className="px-6 py-4">Branch / Hash</th>
@@ -131,20 +131,20 @@ export const ScansPage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: i * 0.05 }}
                     key={scan.id} 
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors group"
+                    className="border-b border-sentinel-border/30 hover:bg-sentinel-inset/40 transition-colors group"
                   >
                     <td className="px-6 py-4">
                       <span className="font-mono text-xs text-sentinel-text-secondary">
                         #{scan.id.substring(0, 6)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-[13px] text-white flex items-center">
+                    <td className="px-6 py-4 font-mono text-[13px] text-sentinel-text-primary flex items-center">
                       <FolderGit2 className="w-4 h-4 mr-2 text-sentinel-text-secondary" />
                       {scan.repository_name}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-[13px] text-white flex items-center">
+                        <span className="text-[13px] text-sentinel-text-primary flex items-center">
                           <GitBranch className="w-3.5 h-3.5 mr-1.5 opacity-70" />
                           {scan.branch}
                         </span>

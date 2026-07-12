@@ -68,7 +68,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
         
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-[28px] font-semibold tabular-nums leading-none">
+          <span className="text-[28px] font-semibold tabular-nums leading-none text-sentinel-text-primary">
             {total}
           </span>
           <span className="text-[11px] text-sentinel-text-secondary mt-1">

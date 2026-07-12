@@ -53,7 +53,7 @@ export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
     return (
       <div className="space-y-6">
         <div className="h-[100px] w-full bg-sentinel-panel rounded animate-pulse" />
-        <div className="h-[400px] w-full bg-[#0d1117] rounded animate-pulse" />
+        <div className="h-[400px] w-full bg-sentinel-panel rounded animate-pulse" />
       </div>
     );
   }

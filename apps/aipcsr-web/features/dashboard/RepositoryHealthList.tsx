@@ -28,7 +28,7 @@ export const RepositoryHealthList: React.FC<RepositoryHealthListProps> = ({ repo
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: i * 0.05 }}
               key={repo.id}
-              className="flex items-center justify-between p-3 glass rounded-lg border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all group cursor-pointer relative overflow-hidden"
+              className="flex items-center justify-between p-3 glass rounded-lg hover:bg-sentinel-inset/40 transition-all group cursor-pointer relative overflow-hidden"
               onClick={() => window.location.href = `/repositories`}
             >
               <div 
@@ -56,7 +56,7 @@ export const RepositoryHealthList: React.FC<RepositoryHealthListProps> = ({ repo
         })}
       </div>
       
-      <div className="pt-3 mt-auto border-t border-white/10">
+      <div className="pt-3 mt-auto border-t border-sentinel-border/30">
         <Link href="/repositories" className="block">
           <Button variant="ghost" fullWidth leftIcon={<Plus className="w-4 h-4" />}>
             Add repository

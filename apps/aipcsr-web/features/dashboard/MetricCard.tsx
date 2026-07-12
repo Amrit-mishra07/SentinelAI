@@ -27,7 +27,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   if (loading) {
     return (
       <div 
-        className="glass-card rounded-xl border border-white/5 p-5 relative overflow-hidden"
+        className="glass-card rounded-xl p-5 relative overflow-hidden"
         style={{ borderLeft: `3px solid ${accentColor}` }}
       >
         <div className="animate-pulse flex flex-col space-y-3">
@@ -44,7 +44,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="glass-card rounded-xl border border-white/5 p-5 relative overflow-hidden group hover:border-white/10 transition-colors"
+      className="glass-card rounded-xl p-5 relative overflow-hidden group transition-colors"
       style={{ borderLeft: `3px solid ${accentColor}` }}
     >
       {/* Subtle glow effect behind the card matching accent color */}
