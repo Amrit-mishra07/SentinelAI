@@ -48,6 +48,7 @@ async def list_vulnerabilities(user_id: str = Depends(get_current_user), db: Ses
             "ai_patch": ai_patch,
             "pr_url": pr_url,
             "patch_status": v.patch_status.value if hasattr(v.patch_status, 'value') else v.patch_status,
+            "patch_error": v.patch_error,
             "created_at": v.created_at
         })
     return resp
@@ -98,6 +99,7 @@ async def get_report(scan_id: str, user_id: str = Depends(get_current_user), db:
             "ai_patch": ai_patch,
             "pr_url": pr_url,
             "patch_status": v.patch_status.value if hasattr(v.patch_status, 'value') else v.patch_status,
+            "patch_error": v.patch_error,
             "created_at": v.created_at
         })
         

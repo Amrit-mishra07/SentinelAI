@@ -54,6 +54,7 @@ def apply_patch(self, vuln_id: str):
             patch_data["pr_url"] = pr_url
             vuln.ai_patch_code = json.dumps(patch_data)
             vuln.patch_status = 'applied'
+            vuln.patch_error = None
             db.commit()
             
             return {
@@ -155,6 +156,7 @@ def apply_patch(self, vuln_id: str):
         patch_data["pr_url"] = pr_url
         vuln.ai_patch_code = json.dumps(patch_data)
         vuln.patch_status = 'applied'
+        vuln.patch_error = None
         db.commit()
 
         return {
@@ -169,6 +171,7 @@ def apply_patch(self, vuln_id: str):
             vuln = db.query(Vulnerability).filter(Vulnerability.id == vuln_id).first()
             if vuln:
                 vuln.patch_status = 'pending'
+                vuln.patch_error = str(e)
                 db.commit()
         except:
             pass

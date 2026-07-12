@@ -239,7 +239,14 @@ export const PatchesPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <Badge variant={vuln.patch_status || 'pending'} />
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={vuln.patch_status || 'pending'} />
+                        {vuln.patch_error && (
+                          <span className="text-sentinel-critical cursor-help flex-shrink-0" title={vuln.patch_error}>
+                            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-[12px] text-sentinel-text-secondary">
                       {formatRelative(vuln.created_at)}
