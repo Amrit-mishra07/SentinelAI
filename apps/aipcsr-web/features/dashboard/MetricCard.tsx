@@ -53,7 +53,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         style={{ backgroundColor: accentColor }}
       />
       
-      <div className="text-4xl font-semibold tabular-nums tracking-tight text-white mb-1 drop-shadow-sm">
+      <div className="text-4xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white mb-1 drop-shadow-sm">
         {animatedValue}{suffix}
       </div>
       <div className="text-[11px] font-semibold text-sentinel-text-secondary tracking-widest uppercase mb-4">

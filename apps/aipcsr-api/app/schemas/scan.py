@@ -7,6 +7,9 @@ class ScanCreate(BaseModel):
 class ScanResponse(BaseModel):
     id: str
     repository: str
+    repository_name: str | None = None
+    branch: str | None = None
+    severity: str | None = None
     status: str
     created_at: datetime
     error_message: str | None = None

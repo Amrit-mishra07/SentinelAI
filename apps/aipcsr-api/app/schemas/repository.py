@@ -12,6 +12,8 @@ class RepositoryResponse(BaseModel):
     url: str
     owner_id: str
     default_branch: str
+    last_scan_at: Optional[datetime] = None
+    last_scan_severity: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

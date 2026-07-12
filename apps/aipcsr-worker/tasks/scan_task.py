@@ -93,6 +93,25 @@ def scan_repository(self, scan_id: str, repository_url: str):
             )
             db.add(vuln)
             
+        # Update Repository last scan metrics
+        scan = db.query(Scan).filter(Scan.id == scan_id).first()
+        if scan:
+            from app.models.repository import Repository
+            repo = db.query(Repository).filter(Repository.id == scan.repository_id).first()
+            if repo:
+                repo.last_scan_at = datetime.utcnow()
+                severities = [v.get("severity", "low").upper() for v in vulnerabilities]
+                if "CRITICAL" in severities:
+                    repo.last_scan_severity = "CRITICAL"
+                elif "HIGH" in severities:
+                    repo.last_scan_severity = "HIGH"
+                elif "MEDIUM" in severities:
+                    repo.last_scan_severity = "MEDIUM"
+                elif "LOW" in severities:
+                    repo.last_scan_severity = "LOW"
+                else:
+                    repo.last_scan_severity = None
+                    
         db.commit()
         
         # Trigger AI Analysis asynchronously

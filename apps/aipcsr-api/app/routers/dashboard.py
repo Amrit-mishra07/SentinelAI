@@ -62,10 +62,27 @@ async def get_dashboard_metrics(user_id: str = Depends(get_current_user), db: Se
             func.date(Vulnerability.created_at) == date
         ).scalar() or 0
         
+        # Get highest severity for this day
+        day_highest_severity = None
+        if day_vulns > 0:
+            day_v_list = db.query(Vulnerability.severity).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+                Repository.owner_id == user_id,
+                func.date(Vulnerability.created_at) == date
+            ).all()
+            day_sevs = [v[0].lower() for v in day_v_list]
+            if "critical" in day_sevs:
+                day_highest_severity = "critical"
+            elif "high" in day_sevs:
+                day_highest_severity = "high"
+            elif "medium" in day_sevs:
+                day_highest_severity = "medium"
+            elif "low" in day_sevs:
+                day_highest_severity = "low"
+
         timeline.append({
             "date": date_str,
-            "scans": day_scans,
-            "vulnerabilities": day_vulns
+            "count": day_scans,
+            "severity": day_highest_severity
         })
 
     return {

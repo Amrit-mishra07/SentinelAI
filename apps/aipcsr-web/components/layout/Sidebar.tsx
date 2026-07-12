@@ -57,7 +57,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
                 className={cn(
                   "flex items-center px-6 py-2.5 mx-2 rounded-md transition-all duration-200 text-sm font-medium",
                   isActive 
-                    ? 'bg-sentinel-accent/10 text-white shadow-[inset_2px_0_0_0_rgba(47,129,247,1)]' 
+                    ? 'bg-sentinel-accent/10 text-sentinel-accent dark:text-white shadow-[inset_2px_0_0_0_rgba(47,129,247,1)]' 
                     : 'text-sentinel-text-secondary hover:bg-sentinel-elevated hover:text-sentinel-text-primary'
                 )}
               >

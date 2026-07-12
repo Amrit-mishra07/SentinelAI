@@ -10,6 +10,8 @@ class Repository(Base):
     url = Column(String)
     owner_id = Column(String, index=True) # References the User who added it or owns it
     default_branch = Column(String, default="main")
+    last_scan_at = Column(DateTime, nullable=True)
+    last_scan_severity = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
