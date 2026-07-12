@@ -39,11 +39,35 @@ export const SettingsPage: React.FC = () => {
   }, [activeTab]);
 
   const handleSaveIntegrations = async () => {
+    if (githubToken && githubToken !== '********') {
+      const trimmed = githubToken.trim();
+      if (!trimmed.startsWith('ghp_') && !trimmed.startsWith('github_pat_')) {
+        toast.error('GitHub token must start with ghp_ or github_pat_');
+        return;
+      }
+      if (trimmed.length < 20) {
+        toast.error('GitHub token is too short');
+        return;
+      }
+    }
+    
+    if (openAiKey && openAiKey !== '********') {
+      const trimmed = openAiKey.trim();
+      if (!trimmed.startsWith('sk-')) {
+        toast.error('OpenAI API Key must start with sk-');
+        return;
+      }
+      if (trimmed.length < 20) {
+        toast.error('OpenAI API Key is too short');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const payload: any = {};
-      if (githubToken && githubToken !== '********') payload.github_token = githubToken;
-      if (openAiKey && openAiKey !== '********') payload.openai_api_key = openAiKey;
+      if (githubToken && githubToken !== '********') payload.github_token = githubToken.trim();
+      if (openAiKey && openAiKey !== '********') payload.openai_api_key = openAiKey.trim();
       
       await apiClient.put('/auth/integrations', payload);
       toast.success('Integration settings saved successfully');

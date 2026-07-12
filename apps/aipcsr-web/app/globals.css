@@ -27,6 +27,30 @@
     --color-completed: #3fb950;
   }
 
+  .light {
+    color-scheme: light;
+    --color-bg-base: #f6f8fa;
+    --color-bg-panel: #ffffff;
+    --color-bg-elevated: #f6f8fa;
+    --color-bg-inset: #ebedf0;
+    --color-border: #d0d7de;
+    --color-border-muted: #d8dee4;
+    --color-text-primary: #1f2328;
+    --color-text-secondary: #57606a;
+    --color-text-tertiary: #656d76;
+    --color-accent: #0969da;
+    --color-accent-glow: rgba(9, 105, 218, 0.2);
+    --color-critical: #cf222e;
+    --color-high: #bc4c00;
+    --color-medium: #8250df;
+    --color-low: #0969da;
+    --color-clean: #1a7f37;
+    --color-scanning: #0969da;
+    --color-pending: #57606a;
+    --color-failed: #cf222e;
+    --color-completed: #1a7f37;
+  }
+
   body {
     @apply bg-sentinel-base text-sentinel-text-primary antialiased;
   }

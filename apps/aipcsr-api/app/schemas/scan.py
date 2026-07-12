@@ -9,6 +9,7 @@ class ScanResponse(BaseModel):
     repository: str
     status: str
     created_at: datetime
+    error_message: str | None = None
 
     class Config:
         from_attributes = True

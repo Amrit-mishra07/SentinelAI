@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
@@ -6,13 +6,15 @@ from app.schemas.scan import ScanCreate, ScanResponse
 from app.models.scan import Scan, ScanStatus
 from app.models.repository import Repository
 from app.config.celery_client import celery_client
+from app.limiter import limiter
 import uuid
 from datetime import datetime
 
 router = APIRouter()
 
 @router.post("/create", response_model=ScanResponse)
-async def create_scan(scan_data: ScanCreate, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def create_scan(request: Request, scan_data: ScanCreate, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
     # Validate repository exists and belongs to user
     repo = db.query(Repository).filter(Repository.id == scan_data.repository, Repository.owner_id == user_id).first()
     if not repo:
@@ -37,7 +39,8 @@ async def create_scan(scan_data: ScanCreate, user_id: str = Depends(get_current_
         "id": scan.id,
         "repository": scan.repository_id,
         "status": scan.status.value,
-        "created_at": scan.created_at
+        "created_at": scan.created_at,
+        "error_message": scan.error_message
     }
 
 @router.get("/list", response_model=list[ScanResponse])
@@ -48,7 +51,8 @@ async def list_scans(user_id: str = Depends(get_current_user), db: Session = Dep
             "id": s.id,
             "repository": s.repository_id,
             "status": s.status.value,
-            "created_at": s.created_at
+            "created_at": s.created_at,
+            "error_message": s.error_message
         }
         for s in scans
     ]
@@ -63,5 +67,6 @@ async def get_scan(scan_id: str, user_id: str = Depends(get_current_user), db: S
         "id": scan.id,
         "repository": scan.repository_id,
         "status": scan.status.value,
-        "created_at": scan.created_at
+        "created_at": scan.created_at,
+        "error_message": scan.error_message
     }

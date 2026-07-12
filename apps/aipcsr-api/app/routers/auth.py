@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from app.schemas.user import UserLogin, UserCreate, UserResponse
@@ -9,11 +9,13 @@ from app.services.auth_service import authenticate_user, register_user
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.schemas.user import UserUpdate, IntegrationsUpdate, IntegrationsResponse
+from app.limiter import limiter
 
 router = APIRouter()
 
 @router.post("/login")
-async def login(user: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)):
     db_user = authenticate_user(db, user)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -28,7 +30,8 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     }
 
 @router.post("/register")
-async def register(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def register(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     new_user = register_user(db, user)
     return {
         "message": "User registered successfully", 

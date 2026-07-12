@@ -38,6 +38,7 @@ def scan_repository(self, scan_id: str, repository_url: str):
         # Create temporary directory inside the container and clone the repository
         temp_dir = tempfile.mkdtemp(prefix=f"scan_{scan_id}_")
         clone_failed = False
+        error_msg = ""
         try:
             clone_res = subprocess.run(
                 ["git", "clone", "--depth", "1", repository_url, temp_dir],
@@ -47,13 +48,19 @@ def scan_repository(self, scan_id: str, repository_url: str):
             )
             if clone_res.returncode != 0:
                 clone_failed = True
+                error_msg = clone_res.stderr.strip() if clone_res.stderr else "Git clone exit code was non-zero"
         except subprocess.TimeoutExpired:
             clone_failed = True
+            error_msg = "Git clone operation timed out after 8 seconds"
             
         if clone_failed:
+            scan = db.query(Scan).filter(Scan.id == scan_id).first()
+            if scan:
+                scan.error_message = error_msg
+                db.commit()
             import os
             # Fallback to local mock files if offline / unable to access git url
-            print("Git clone timed out or failed. Creating local mock files...")
+            print(f"Git clone failed: {error_msg}. Creating local mock files...")
             os.makedirs(os.path.join(temp_dir, "src"), exist_ok=True)
             with open(os.path.join(temp_dir, "src", "db.py"), "w") as f:
                 f.write('import sqlite3\n\ndef query_user(username):\n    conn = sqlite3.connect("users.db")\n    cursor = conn.cursor()\n    # SQL Injection Vulnerability\n    cursor.execute("SELECT * FROM users WHERE username = \'" + username + "\'")\n    return cursor.fetchall()\n')
@@ -102,6 +109,8 @@ def scan_repository(self, scan_id: str, repository_url: str):
         scan = db.query(Scan).filter(Scan.id == scan_id).first()
         if scan:
             scan.status = ScanStatus.FAILED
+            if not scan.error_message:
+                scan.error_message = str(e)
             db.commit()
             
         print(f"Scan task failed: {str(e)}")
