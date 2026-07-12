@@ -18,7 +18,7 @@ class AIProvider:
 class OpenAIProvider(AIProvider):
     def __init__(self):
         self.api_key = settings.OPENAI_API_KEY
-        self.model = "gpt-4"
+        self.model = "gpt-4o-mini"
     
     def analyze_vulnerability(self, vulnerability: dict) -> dict:
         """Analyze vulnerability and suggest fixes using OpenAI"""
