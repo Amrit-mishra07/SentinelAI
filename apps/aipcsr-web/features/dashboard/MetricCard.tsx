@@ -12,16 +12,26 @@ interface MetricCardProps {
   trendLabel: string;
   accentColor: string;
   loading?: boolean;
+  trendInverse?: boolean;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
-  title, value, suffix = '', trend, trendLabel, accentColor, loading
+  title, value, suffix = '', trend, trendLabel, accentColor, loading, trendInverse = false
 }) => {
   const animatedValue = useCountUp(loading ? 0 : value, 1000);
   
   const isPositiveTrend = trend > 0;
   const isNeutralTrend = trend === 0;
-  const trendColor = isPositiveTrend ? 'text-sentinel-critical' : isNeutralTrend ? 'text-sentinel-text-secondary' : 'text-sentinel-clean';
+  
+  let trendColor = 'text-sentinel-text-secondary';
+  if (!isNeutralTrend) {
+    if (isPositiveTrend) {
+      trendColor = trendInverse ? 'text-sentinel-clean' : 'text-sentinel-critical';
+    } else {
+      trendColor = trendInverse ? 'text-sentinel-critical' : 'text-sentinel-clean';
+    }
+  }
+
   const TrendIcon = isPositiveTrend ? TrendingUp : isNeutralTrend ? Minus : TrendingDown;
 
   if (loading) {
@@ -61,8 +71,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
       <div className="flex items-center text-xs">
         <span className={cn("font-medium mr-1.5 flex items-center", trendColor)}>
-          <TrendIcon className="w-3 h-3 mr-1" strokeWidth={3} />
-          {Math.abs(trend)}{suffix}
+          {!isNeutralTrend && <TrendIcon className="w-3 h-3 mr-1" strokeWidth={3} />}
+          {isNeutralTrend ? '' : trend > 0 ? '+' : '-'}{Math.abs(trend)}{suffix}
         </span>
         <span className="text-sentinel-text-tertiary">
           {trendLabel}

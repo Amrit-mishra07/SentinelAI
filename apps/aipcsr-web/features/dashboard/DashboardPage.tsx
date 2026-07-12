@@ -77,7 +77,7 @@ export const DashboardPage: React.FC = () => {
         <MetricCard
           title="Total Vulns"
           value={metrics.total_vulnerabilities}
-          trend={+2}
+          trend={dashboardData?.trends?.total_vulnerabilities ?? 0}
           trendLabel="vs yesterday"
           accentColor="var(--color-bg-inset)"
           loading={loading}
@@ -85,7 +85,7 @@ export const DashboardPage: React.FC = () => {
         <MetricCard
           title="Critical"
           value={metrics.critical_count}
-          trend={0}
+          trend={dashboardData?.trends?.critical_count ?? 0}
           trendLabel="vs yesterday"
           accentColor={SEVERITY_COLORS.critical}
           loading={loading}
@@ -93,18 +93,20 @@ export const DashboardPage: React.FC = () => {
         <MetricCard
           title="Scans Today"
           value={metrics.scans_today}
-          trend={+1}
+          trend={dashboardData?.trends?.scans_today ?? 0}
           trendLabel="vs yesterday"
           accentColor="var(--color-accent)"
+          trendInverse
           loading={loading}
         />
         <MetricCard
           title="Patched"
           value={metrics.patched_percentage}
           suffix="%"
-          trend={+5}
-          trendLabel="vs yest."
+          trend={dashboardData?.trends?.patched_percentage ?? 0}
+          trendLabel="vs yesterday"
           accentColor={SEVERITY_COLORS.clean}
+          trendInverse
           loading={loading}
         />
       </div>

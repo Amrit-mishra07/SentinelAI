@@ -85,12 +85,64 @@ async def get_dashboard_metrics(user_id: str = Depends(get_current_user), db: Se
             "severity": day_highest_severity
         })
 
+    # Calculate trends compared to yesterday
+    yesterday = today - timedelta(days=1)
+    
+    scans_yesterday = db.query(func.count(Scan.id)).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        func.date(Scan.created_at) == yesterday
+    ).scalar() or 0
+    scans_today_trend = scans_today - scans_yesterday
+
+    vulns_today = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        func.date(Vulnerability.created_at) == today
+    ).scalar() or 0
+    vulns_yesterday = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        func.date(Vulnerability.created_at) == yesterday
+    ).scalar() or 0
+    vulns_trend = vulns_today - vulns_yesterday
+
+    critical_today = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        Vulnerability.severity == 'critical',
+        func.date(Vulnerability.created_at) == today
+    ).scalar() or 0
+    critical_yesterday = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        Vulnerability.severity == 'critical',
+        func.date(Vulnerability.created_at) == yesterday
+    ).scalar() or 0
+    critical_trend = critical_today - critical_yesterday
+
+    patches_today = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        Vulnerability.patch_status == 'applied',
+        func.date(Vulnerability.created_at) == today
+    ).scalar() or 0
+    patches_yesterday = db.query(func.count(Vulnerability.id)).join(Report, Vulnerability.report_id == Report.id).join(Scan, Report.scan_id == Scan.id).join(Repository, Scan.repository_id == Repository.id).filter(
+        Repository.owner_id == user_id,
+        Vulnerability.patch_status == 'applied',
+        func.date(Vulnerability.created_at) == yesterday
+    ).scalar() or 0
+    
+    patched_pct_today = int((patches_today / vulns_today * 100)) if vulns_today > 0 else 0
+    patched_pct_yesterday = int((patches_yesterday / vulns_yesterday * 100)) if vulns_yesterday > 0 else 0
+    patched_pct_trend = patched_pct_today - patched_pct_yesterday
+
     return {
         "metrics": {
             "total_vulnerabilities": total_vulns,
             "critical_count": critical_count,
             "scans_today": scans_today,
             "patched_percentage": patched_percentage
+        },
+        "trends": {
+            "total_vulnerabilities": vulns_trend,
+            "critical_count": critical_trend,
+            "scans_today": scans_today_trend,
+            "patched_percentage": patched_pct_trend
         },
         "severity_distribution": severity_distribution,
         "timeline": timeline
