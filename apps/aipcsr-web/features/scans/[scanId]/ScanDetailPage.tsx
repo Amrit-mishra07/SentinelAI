@@ -18,15 +18,26 @@ export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
   const [scan, setScan] = useState<Scan | null>(null);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const PAGE_SIZE = 50;
 
-  const fetchScanDetails = useCallback(async () => {
+  const fetchScanDetails = useCallback(async (currentSkip = 0, append = false) => {
     try {
+      if (!append) setLoading(true);
       const { data } = await apiClient.get(`/scan/${scanId}`);
       setScan(data);
       if (data.status === 'completed') {
-        const reportRes = await apiClient.get(`/report/${scanId}`);
-        if (reportRes.data && reportRes.data.vulnerabilities) {
-          setVulnerabilities(reportRes.data.vulnerabilities);
+        const reportRes = await apiClient.get(`/report/${scanId}?skip=${currentSkip}&limit=${PAGE_SIZE}`);
+        if (reportRes.data) {
+          if (append) {
+            setVulnerabilities(prev => [...prev, ...(reportRes.data.vulnerabilities || [])]);
+          } else {
+            setVulnerabilities(reportRes.data.vulnerabilities || []);
+          }
+          if (reportRes.data.pagination) {
+            setHasMore(reportRes.data.pagination.total > currentSkip + (reportRes.data.vulnerabilities?.length || 0));
+          }
         }
       }
     } catch (err) {
@@ -35,6 +46,12 @@ export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
       setLoading(false);
     }
   }, [scanId]);
+
+  const handleLoadMore = () => {
+    const nextSkip = skip + PAGE_SIZE;
+    setSkip(nextSkip);
+    fetchScanDetails(nextSkip, true);
+  };
 
   useEffect(() => {
     fetchScanDetails();
@@ -152,7 +169,11 @@ export const ScanDetailPage: React.FC<ScanDetailPageProps> = ({ scanId }) => {
         )}
 
         {scan.status === 'completed' && (
-          <VulnerabilityList vulnerabilities={vulnerabilities} />
+          <VulnerabilityList 
+            vulnerabilities={vulnerabilities} 
+            hasMore={hasMore} 
+            onLoadMore={handleLoadMore} 
+          />
         )}
 
         {scan.status === 'failed' && (

@@ -2,6 +2,8 @@ import sys
 import os
 import uuid
 from datetime import datetime
+import requests
+import re
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 sys.path.insert(0, os.path.join(base_dir, 'apps', 'aipcsr-api'))
@@ -34,6 +36,23 @@ def scan_repository(self, scan_id: str, repository_url: str):
             scan.status = ScanStatus.SCANNING
             scan.started_at = datetime.utcnow()
             db.commit()
+
+        # [NEW] Pre-flight check: Enforce Repository Size Limit (e.g., 500MB)
+        MAX_SIZE_KB = 500 * 1024
+        match = re.search(r"github\.com/([^/]+)/([^/.]+)", repository_url)
+        if match:
+            owner, repo_name = match.groups()
+            try:
+                api_url = f"https://api.github.com/repos/{owner}/{repo_name}"
+                repo_data = requests.get(api_url, timeout=5).json()
+                repo_size_kb = repo_data.get("size", 0)
+                
+                if repo_size_kb > MAX_SIZE_KB:
+                    raise ValueError(f"Repository exceeds the maximum allowed size of 500MB (Current size: {repo_size_kb // 1024}MB).")
+            except ValueError as ve:
+                raise ve
+            except Exception as e:
+                print(f"Warning: Could not fetch repo size from GitHub API: {e}")
 
         # Create temporary directory inside the container and clone the repository
         temp_dir = tempfile.mkdtemp(prefix=f"scan_{scan_id}_")

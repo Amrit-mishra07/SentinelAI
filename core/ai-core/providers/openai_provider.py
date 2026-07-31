@@ -15,13 +15,24 @@ class AIProvider:
     def analyze_vulnerability(self, vulnerability: dict) -> dict:
         raise NotImplementedError
 
+import time
+
 class OpenAIProvider(AIProvider):
     def __init__(self):
         self.api_key = settings.OPENAI_API_KEY
         self.model = "gpt-4o-mini"
+        self.test_mode = os.getenv("TEST_MODE", "false").lower() == "true"
     
     def analyze_vulnerability(self, vulnerability: dict) -> dict:
         """Analyze vulnerability and suggest fixes using OpenAI"""
+        if self.test_mode:
+            time.sleep(2)
+            return {
+                "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
+                "analysis": "[MOCK] This is a simulated AI analysis for load testing purposes.",
+                "fix": "- old_code()\n+ new_secure_code()"
+            }
+
         fallback_data = {
             "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
             "analysis": "This vulnerability exposes the application to security risks. Avoid concatenating parameters directly into queries or hardcoding secrets.",

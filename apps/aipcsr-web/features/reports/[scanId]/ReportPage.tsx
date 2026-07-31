@@ -19,32 +19,47 @@ export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
   const [scan, setScan] = useState<Scan | null>(null);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
+  const [severityCounts, setSeverityCounts] = useState<SeverityCounts>({ critical: 0, high: 0, medium: 0, low: 0 });
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const PAGE_SIZE = 50;
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        const scanRes = await apiClient.get(`/scan/${scanId}`);
-        setScan(scanRes.data);
-        
-        const reportRes = await apiClient.get(`/report/${scanId}`);
-        if (reportRes.data && reportRes.data.vulnerabilities) {
-          setVulnerabilities(reportRes.data.vulnerabilities);
+  const fetchReport = async (currentSkip = 0, append = false) => {
+    try {
+      if (!append) setLoading(true);
+      const scanRes = await apiClient.get(`/scan/${scanId}`);
+      setScan(scanRes.data);
+      
+      const reportRes = await apiClient.get(`/report/${scanId}?skip=${currentSkip}&limit=${PAGE_SIZE}`);
+      if (reportRes.data) {
+        if (append) {
+          setVulnerabilities(prev => [...prev, ...(reportRes.data.vulnerabilities || [])]);
+        } else {
+          setVulnerabilities(reportRes.data.vulnerabilities || []);
+          if (reportRes.data.severity_counts) {
+            setSeverityCounts(reportRes.data.severity_counts);
+          }
         }
-      } catch (err) {
-        toast.error('Failed to load report data');
-      } finally {
-        setLoading(false);
+        if (reportRes.data.pagination) {
+          setHasMore(reportRes.data.pagination.total > currentSkip + (reportRes.data.vulnerabilities?.length || 0));
+        }
       }
-    };
+    } catch (err) {
+      toast.error('Failed to load report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchReport();
   }, [scanId, toast]);
 
-  const severityCounts: SeverityCounts = {
-    critical: vulnerabilities.filter(v => v.severity === 'critical').length,
-    high: vulnerabilities.filter(v => v.severity === 'high').length,
-    medium: vulnerabilities.filter(v => v.severity === 'medium').length,
-    low: vulnerabilities.filter(v => v.severity === 'low').length,
+  const handleLoadMore = () => {
+    const nextSkip = skip + PAGE_SIZE;
+    setSkip(nextSkip);
+    fetchReport(nextSkip, true);
   };
   
   const riskScore = computeRiskScore(severityCounts);
@@ -148,12 +163,15 @@ export const ReportPage: React.FC<ReportPageProps> = ({ scanId }) => {
         />
       </div>
 
-      {/* Details */}
       <div className="pt-4">
         <h2 className="text-[18px] font-medium text-sentinel-text-primary mb-4 border-b border-sentinel-border pb-2">
           Detailed Findings
         </h2>
-        <VulnerabilityList vulnerabilities={vulnerabilities} />
+        <VulnerabilityList 
+          vulnerabilities={vulnerabilities} 
+          hasMore={hasMore} 
+          onLoadMore={handleLoadMore} 
+        />
       </div>
 
     </div>
