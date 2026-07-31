@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
@@ -74,7 +74,13 @@ async def list_all_reports(user_id: str = Depends(get_current_user), db: Session
     return resp
 
 @router.get("/{scan_id}")
-async def get_report(scan_id: str, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_report(
+    scan_id: str, 
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(50, ge=1, le=1000), 
+    user_id: str = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
     scan = db.query(Scan).join(Repository, Scan.repository_id == Repository.id).filter(Scan.id == scan_id, Repository.owner_id == user_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
@@ -83,7 +89,18 @@ async def get_report(scan_id: str, user_id: str = Depends(get_current_user), db:
     if not report:
         return None
         
-    vulnerabilities = db.query(Vulnerability).filter(Vulnerability.report_id == report.id).all()
+    # [NEW] Calculate severity counts for the whole report
+    all_vulns = db.query(Vulnerability.severity).filter(Vulnerability.report_id == report.id).all()
+    severity_counts = {
+        "critical": sum(1 for v in all_vulns if (v[0].value if hasattr(v[0], 'value') else v[0]) == 'critical'),
+        "high": sum(1 for v in all_vulns if (v[0].value if hasattr(v[0], 'value') else v[0]) == 'high'),
+        "medium": sum(1 for v in all_vulns if (v[0].value if hasattr(v[0], 'value') else v[0]) == 'medium'),
+        "low": sum(1 for v in all_vulns if (v[0].value if hasattr(v[0], 'value') else v[0]) == 'low'),
+    }
+        
+    vulnerabilities_query = db.query(Vulnerability).filter(Vulnerability.report_id == report.id)
+    total_count = vulnerabilities_query.count()
+    vulnerabilities = vulnerabilities_query.offset(skip).limit(limit).all()
     
     vulns_list = []
     for v in vulnerabilities:
@@ -108,10 +125,15 @@ async def get_report(scan_id: str, user_id: str = Depends(get_current_user), db:
         "scan_id": scan.id,
         "vulnerabilities_count": report.vulnerabilities_count,
         "severity": report.severity.value if report.severity else None,
+        "severity_counts": severity_counts,
         "created_at": report.created_at,
-        "vulnerabilities": vulns_list
+        "vulnerabilities": vulns_list,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit
+        }
     }
-
 from fastapi.responses import FileResponse
 import os
 
