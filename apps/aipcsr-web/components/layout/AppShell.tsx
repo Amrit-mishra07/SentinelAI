@@ -1,18 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { CommandPalette } from '../ui/CommandPalette';
+import { useAuth } from '../../hooks/useAuth';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { token, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !token && pathname !== '/login' && pathname !== '/register') {
+      router.push('/login');
+    }
+  }, [loading, token, pathname, router]);
 
   // Do not render shell for login and register pages
   if (pathname === '/login' || pathname === '/register') {
     return <>{children}</>;
+  }
+
+  if (loading || !token) {
+    return (
+      <div className="min-h-screen bg-sentinel-base flex items-center justify-center">
+        <div className="animate-pulse w-8 h-8 rounded-full bg-sentinel-accent"></div>
+      </div>
+    );
   }
 
   return (

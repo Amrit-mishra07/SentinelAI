@@ -21,23 +21,31 @@ export function useAuth() {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    window.dispatchEvent(new Event('sentinelai:auth-changed'));
     router.push('/login');
   }, [router]);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch (e) {
-          console.error('Failed to parse stored user', e);
+    const checkAuth = () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch (e) {
+            console.error('Failed to parse stored user', e);
+          }
         }
+      } else {
+        setToken(null);
+        setUser(null);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    checkAuth();
 
     const handleUnauthorized = () => {
       toastError('Session expired. Please log in again.');
@@ -45,9 +53,11 @@ export function useAuth() {
     };
 
     window.addEventListener('sentinelai:unauthorized', handleUnauthorized);
+    window.addEventListener('sentinelai:auth-changed', checkAuth);
     
     return () => {
       window.removeEventListener('sentinelai:unauthorized', handleUnauthorized);
+      window.removeEventListener('sentinelai:auth-changed', checkAuth);
     };
   }, [logout, toastError]);
 
