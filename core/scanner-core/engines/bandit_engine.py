@@ -15,7 +15,7 @@ class BanditEngine(BaseEngine):
                 ["bandit", "-r", repository, "-f", "json"],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=300
             )
             
             # Bandit may exit with non-zero if vulns are found, but stdout still has json
