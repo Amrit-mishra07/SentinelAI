@@ -12,10 +12,10 @@ class SemgrepEngine(BaseEngine):
         """Run Semgrep static analysis scanner"""
         try:
             result = subprocess.run(
-                ["semgrep", "scan", "--json", repository],
+                ["semgrep", "scan", "--config=p/security-audit", "--json", repository],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=300
             )
             
             output = json.loads(result.stdout)
