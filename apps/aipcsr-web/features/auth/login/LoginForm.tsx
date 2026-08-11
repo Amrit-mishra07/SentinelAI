@@ -54,6 +54,7 @@ export const LoginForm: React.FC = () => {
       
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      window.dispatchEvent(new Event('sentinelai:auth-changed'));
       
       success('Login successful');
       setTimeout(() => {

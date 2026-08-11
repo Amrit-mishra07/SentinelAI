@@ -45,7 +45,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
       const res = await apiClient.put('/auth/me', { email });
       // update local storage user
       localStorage.setItem('user', JSON.stringify(res.data));
-      toast.success('Profile updated');
+      window.dispatchEvent(new Event('sentinelai:auth-changed'));
+      toast.success('Profile updated successfully');
       setEditingInfo(false);
     } catch (err: any) {
       toast.error(err.message || 'Failed to update profile');
