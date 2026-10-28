@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, Text
 from datetime import datetime
 from app.models.base import Base
 from app.security.passwords import hash_password, verify_password
@@ -11,6 +11,9 @@ class User(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     github_token = Column(String, nullable=True)
+    github_refresh_token = Column(Text, nullable=True)
+    github_token_expires_at = Column(DateTime, nullable=True)
+    github_refresh_expires_at = Column(DateTime, nullable=True)
     openai_api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

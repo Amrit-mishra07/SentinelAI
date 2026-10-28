@@ -1,35 +1,22 @@
+"""Validate structured AI output before it can become a proposed patch."""
+
 import json
-import re
+
 
 class ResponseParser:
     @staticmethod
     def parse_ai_response(response: str) -> dict:
-        """Parse AI model response into structured format"""
+        """Reject prose/code-fence fallbacks instead of guessing executable edits."""
+        if not isinstance(response, str) or len(response.encode("utf-8")) > 196608:
+            raise ValueError("AI response is missing or exceeds the output limit")
         try:
-            # Try JSON parsing first
-            return json.loads(response)
-        except json.JSONDecodeError:
-            # Fall back to regex extraction
-            return ResponseParser._extract_from_text(response)
-    
-    @staticmethod
-    def _extract_from_text(text: str) -> dict:
-        """Extract structured data from plain text response"""
-        result = {
-            "analysis": text,
-            "severity": ResponseParser._extract_severity(text),
-            "fix": ResponseParser._extract_code_block(text)
-        }
-        return result
-    
-    @staticmethod
-    def _extract_severity(text: str) -> str:
-        for level in ["critical", "high", "medium", "low"]:
-            if level in text.lower():
-                return level
-        return "medium"
-    
-    @staticmethod
-    def _extract_code_block(text: str) -> str:
-        match = re.search(r'```[\w]*\n(.*?)\n```', text, re.DOTALL)
-        return match.group(1) if match else ""
+            data = json.loads(response)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ValueError("AI response must be valid JSON") from exc
+        if not isinstance(data, dict) or set(data) != {"analysis", "fix"}:
+            raise ValueError("AI response must contain exactly analysis and fix")
+        if not isinstance(data["analysis"], str) or not isinstance(data["fix"], str):
+            raise ValueError("AI analysis and fix must be strings")
+        if not data["analysis"].strip():
+            raise ValueError("AI analysis must not be empty")
+        return data

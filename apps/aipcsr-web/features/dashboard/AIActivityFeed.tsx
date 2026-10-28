@@ -52,7 +52,7 @@ export const AIActivityFeed: React.FC<AIActivityFeedProps> = ({ events }) => {
               </span>
               
               <span className="text-sentinel-text-secondary mx-2 hidden sm:inline">
-                GPT-4 analyzed
+                AI analysis
               </span>
               
               <span className="text-sentinel-accent truncate max-w-[200px] md:max-w-[300px]" title={event.file}>

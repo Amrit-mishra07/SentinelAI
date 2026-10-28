@@ -71,7 +71,7 @@ export const CommandPalette: React.FC = () => {
                   </div>
                 ) : (
                   <div className="py-8 text-center text-sentinel-text-secondary text-sm">
-                    No results found for "<span className="text-sentinel-text-primary">{query}</span>"
+                    No results found for &quot;<span className="text-sentinel-text-primary">{query}</span>&quot;
                   </div>
                 )}
               </div>

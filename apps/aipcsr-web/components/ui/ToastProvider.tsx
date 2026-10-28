@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Toast, ToastMessage, ToastType } from './Toast';
 
@@ -43,8 +43,10 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const context = useMemo(() => ({ success, error, info }), [success, error, info]);
+
   return (
-    <ToastContext.Provider value={{ success, error, info }}>
+    <ToastContext.Provider value={context}>
       {children}
       <div className="fixed top-4 right-4 z-[100] flex flex-col space-y-3 pointer-events-none w-full max-w-sm sm:items-end px-4 sm:px-0">
         <AnimatePresence>

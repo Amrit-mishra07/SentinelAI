@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useToastContext } from '../components/ui/ToastProvider';
 import { User } from '../types';
 
 export function useAuth() {
@@ -8,13 +7,6 @@ export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  
-  // Safe extraction because this hook might be called outside Provider during SSR
-  let toastError = (msg: string) => console.error(msg);
-  try {
-    const { error } = useToastContext();
-    toastError = error;
-  } catch(e) {}
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
@@ -22,44 +14,32 @@ export function useAuth() {
     setToken(null);
     setUser(null);
     window.dispatchEvent(new Event('sentinelai:auth-changed'));
-    router.push('/login');
+    router.replace('/login');
   }, [router]);
 
   useEffect(() => {
     const checkAuth = () => {
       const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        setToken(storedToken);
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            setUser(JSON.parse(storedUser));
-          } catch (e) {
-            console.error('Failed to parse stored user', e);
-          }
+      let storedUser: User | null = null;
+      try {
+        const value: unknown = JSON.parse(localStorage.getItem('user') || 'null');
+        if (value && typeof value === 'object' && 'id' in value && 'email' in value && typeof value.id === 'string' && typeof value.email === 'string') {
+          storedUser = { id: value.id, email: value.email };
         }
-      } else {
-        setToken(null);
-        setUser(null);
-      }
+      } catch { localStorage.removeItem('user'); }
+      setToken(storedToken);
+      setUser(storedToken ? storedUser : null);
       setLoading(false);
     };
-
     checkAuth();
-
-    const handleUnauthorized = () => {
-      toastError('Session expired. Please log in again.');
-      logout();
-    };
-
-    window.addEventListener('sentinelai:unauthorized', handleUnauthorized);
+    window.addEventListener('sentinelai:unauthorized', logout);
     window.addEventListener('sentinelai:auth-changed', checkAuth);
-    
+    window.addEventListener('storage', checkAuth);
     return () => {
-      window.removeEventListener('sentinelai:unauthorized', handleUnauthorized);
+      window.removeEventListener('sentinelai:unauthorized', logout);
       window.removeEventListener('sentinelai:auth-changed', checkAuth);
+      window.removeEventListener('storage', checkAuth);
     };
-  }, [logout, toastError]);
-
+  }, [logout]);
   return { user, token, logout, loading };
 }

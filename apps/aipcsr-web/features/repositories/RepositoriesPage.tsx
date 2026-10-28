@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { mapApiError } from '../../lib/error-mapper';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -14,22 +16,21 @@ export const RepositoriesPage: React.FC = () => {
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  useEffect(() => {
-    fetchRepositories();
-  }, []);
-
   const fetchRepositories = async () => {
     try {
       const response = await apiClient.get('/repository/list');
       setRepositories(response.data);
+      setError(null);
     } catch (error) {
-      toast.error('Failed to load repositories');
+      setError(mapApiError(error));
     } finally {
       setIsLoading(false);
     }
   };
+  useEffect(() => { void Promise.resolve().then(fetchRepositories); }, []);
   return (
     <div className="space-y-6 animate-slide-in-right" style={{ animationDuration: '0.4s' }}>
       
@@ -45,7 +46,7 @@ export const RepositoriesPage: React.FC = () => {
       </div>
 
       <div className="bg-sentinel-panel border border-sentinel-border rounded-lg overflow-hidden shadow-sm">
-        {isLoading ? (
+        {error ? (<ErrorState description={error} onRetry={fetchRepositories} />) : isLoading ? (
           <div className="p-12 text-center text-sentinel-text-secondary">Loading repositories...</div>
         ) : repositories.length === 0 ? (
           <EmptyState 
@@ -102,9 +103,9 @@ export const RepositoriesPage: React.FC = () => {
                       <Button 
                         variant="secondary" 
                         size="sm"
-                        onClick={() => toast.success(`Settings panel for ${repo.name} coming in Phase 2!`)}
+                        onClick={() => window.open(repo.url, '_blank', 'noopener,noreferrer')}
                       >
-                        Settings
+                        View on GitHub
                       </Button>
                     </td>
                   </tr>

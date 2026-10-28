@@ -14,30 +14,15 @@ export function useScanDetail(id: string) {
       const data = await api.get<Scan>(`/scan/${id}`);
       setScan(data);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch scan detail');
-      // Mock data for development
-      setScan({ 
-        id, 
-        repository_id: 'repo-1', 
-        repository_name: 'frontend-monorepo', 
-        branch: 'main', 
-        commit_hash: '1234abc', 
-        status: 'scanning', 
-        vulnerabilities_count: 0, 
-        severity: undefined, 
-        created_at: new Date(Date.now() - 60000).toISOString(), 
-        started_at: new Date(Date.now() - 50000).toISOString(), 
-        completed_at: null, 
-        updated_at: new Date().toISOString() 
-      });
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'Failed to fetch scan detail');
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchScan();
+    void Promise.resolve().then(fetchScan);
   }, [fetchScan]);
 
   const isActive = useMemo(() => !!scan && (scan.status === 'pending' || scan.status === 'scanning'), [scan]);

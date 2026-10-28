@@ -1,35 +1,21 @@
-import { AxiosError } from "axios";
+import { isAxiosError } from 'axios';
 
 export const mapApiError = (error: unknown): string => {
-  if (error instanceof AxiosError) {
-    if (!error.response) {
-      return "Network error: You appear to be offline or the server is unreachable.";
+  if (isAxiosError(error)) {
+    if (!error.response) return 'The server is unreachable. Check your connection and try again.';
+    const data: unknown = error.response.data;
+    if (data && typeof data === 'object' && 'detail' in data) {
+      const detail = data.detail;
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) return detail.map((item: unknown) => {
+        if (item && typeof item === 'object' && 'msg' in item) return String(item.msg);
+        return String(item);
+      }).join('; ');
     }
-    const status = error.response.status;
-    
-    if (status === 401) {
-      return "Your session has expired. Please log in again.";
-    }
-    if (status === 403) {
-      return "You do not have permission to perform this action.";
-    }
-    if (status === 429) {
-      return "The server is currently busy processing too many requests. Please wait a moment.";
-    }
-    if (status >= 500) {
-      return "Our servers encountered an unexpected error. The engineering team has been notified.";
-    }
-    
-    // Check if the backend sent a specific detail message
-    const data = error.response.data as { detail?: string | string[] };
-    if (data?.detail) {
-      return Array.isArray(data.detail) ? data.detail[0] : data.detail;
-    }
+    if (error.response.status === 401) return 'Please sign in again.';
+    if (error.response.status === 403) return 'You do not have permission to perform this action.';
+    if (error.response.status === 429) return 'Too many requests. Please wait and try again.';
+    return `Request failed (${error.response.status}). Please try again.`;
   }
-  
-  if (error instanceof Error) {
-    return error.message;
-  }
-  
-  return "An unexpected error occurred.";
+  return error instanceof Error ? error.message : 'An unexpected error occurred.';
 };

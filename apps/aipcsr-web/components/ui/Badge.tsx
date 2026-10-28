@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { SeverityLevel, ScanStatus } from '../../types';
+import { SeverityLevel, ScanStatus, PatchStatus } from '../../types';
 import { cn } from '../../lib/utils';
 
 export interface BadgeProps {
-  variant: SeverityLevel | ScanStatus | 'clean' | 'applied' | 'rejected';
+  variant: SeverityLevel | ScanStatus | PatchStatus | 'clean';
   size?: 'sm' | 'md';
   pulse?: boolean;
   className?: string;
@@ -21,6 +21,8 @@ export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, class
     pending: 'bg-sentinel-pending/10 text-sentinel-pending border-sentinel-pending/30',
     failed: 'bg-sentinel-failed/10 text-sentinel-failed border-sentinel-failed/30',
     completed: 'bg-sentinel-completed/10 text-sentinel-completed border-sentinel-completed/30',
+    validating: 'bg-sentinel-scanning/10 text-sentinel-scanning border-sentinel-scanning/30',
+    pr_opened: 'bg-sentinel-accent/10 text-sentinel-accent border-sentinel-accent/30',
     applied: 'bg-sentinel-completed/10 text-sentinel-completed border-sentinel-completed/30',
     rejected: 'bg-sentinel-text-tertiary/10 text-sentinel-text-secondary border-sentinel-border-muted',
   };
@@ -31,7 +33,7 @@ export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, class
   };
 
   const badgeColor = styles[variant] || styles.pending;
-  const label = variant.charAt(0).toUpperCase() + variant.slice(1);
+  const label = variant === 'pr_opened' ? 'PR opened · review required' : variant === 'applied' ? 'Legacy applied' : variant.charAt(0).toUpperCase() + variant.slice(1);
 
   return (
     <motion.span 
@@ -43,7 +45,7 @@ export const Badge: React.FC<BadgeProps> = ({ variant, size = 'sm', pulse, class
         sizes[size],
         className
       )}
-      aria-label={`Severity: ${label}`}
+      aria-label={label}
     >
       {pulse && (
         <span className="relative mr-1.5 flex h-1.5 w-1.5">

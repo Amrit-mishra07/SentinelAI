@@ -20,6 +20,9 @@ async def connect_repository(
     db: Session = Depends(get_db)
 ):
     # Parse repo name from URL (e.g. https://github.com/owner/repo)
+    existing = db.query(Repository).filter(Repository.owner_id == user_id, Repository.url == repo_data.url).first()
+    if existing:
+        return existing
     parts = repo_data.url.strip("/").split("/")
     if len(parts) < 2:
         raise HTTPException(status_code=400, detail="Invalid repository URL")

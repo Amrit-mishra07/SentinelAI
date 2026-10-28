@@ -10,6 +10,7 @@ from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.schemas.user import UserUpdate, IntegrationsUpdate, IntegrationsResponse
 from app.limiter import limiter
+from app.security.secrets import encrypt_secret
 
 router = APIRouter()
 
@@ -76,10 +77,18 @@ async def update_integrations(data: IntegrationsUpdate, user_id: str = Depends(g
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    try:
+        github_token = encrypt_secret(data.github_token) if data.github_token is not None else user.github_token
+        openai_key = encrypt_secret(data.openai_api_key) if data.openai_api_key is not None else user.openai_api_key
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    user.github_token = github_token
+    user.openai_api_key = openai_key
     if data.github_token is not None:
-        user.github_token = data.github_token
-    if data.openai_api_key is not None:
-        user.openai_api_key = data.openai_api_key
+        # Replacing/revoking an OAuth grant with a PAT must not leave stale refresh state.
+        user.github_refresh_token = None
+        user.github_token_expires_at = None
+        user.github_refresh_expires_at = None
         
     db.commit()
     db.refresh(user)

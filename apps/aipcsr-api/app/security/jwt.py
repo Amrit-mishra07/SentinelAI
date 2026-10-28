@@ -17,7 +17,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError as JWTError
 from pydantic import BaseModel
 
 from app.config.settings import settings
@@ -105,7 +106,7 @@ def decode_token(token: str) -> dict:
     """Decode and verify a JWT, returning the raw claims dict.
 
     Raises:
-        jose.JWTError: If the token is invalid, expired, or tampered with.
+        jwt.InvalidTokenError: If the token is invalid, expired, or tampered with.
     """
     return jwt.decode(
         token,
@@ -114,7 +115,7 @@ def decode_token(token: str) -> dict:
     )
 
 
-def verify_token(token: str) -> Optional[str]:
+def verify_token(token: str, expected_type: str = "access") -> Optional[str]:
     """Validate a token and extract the user id (``sub`` claim).
 
     This is the primary helper consumed by ``dependencies/auth.py``.
@@ -129,8 +130,8 @@ def verify_token(token: str) -> Optional[str]:
     try:
         payload = decode_token(token)
         user_id: Optional[str] = payload.get("sub")
-        if user_id is None:
-            logger.warning("Token decoded but missing 'sub' claim")
+        if not isinstance(user_id, str) or not user_id or payload.get("token_type") != expected_type:
+            logger.warning("Token has an invalid subject or token type")
             return None
         return user_id
     except JWTError as exc:

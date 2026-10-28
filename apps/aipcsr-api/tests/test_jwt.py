@@ -9,7 +9,7 @@ import time
 from datetime import timedelta
 
 import pytest
-from jose import JWTError
+from jwt import InvalidTokenError as JWTError
 
 from app.security.jwt import (
     TokenPayload,
@@ -56,7 +56,8 @@ class TestRefreshToken:
 
     def test_create_and_verify(self):
         token = create_refresh_token(data={"sub": "user-r1"})
-        assert verify_token(token) == "user-r1"
+        assert verify_token(token, expected_type="refresh") == "user-r1"
+        assert verify_token(token) is None
 
     def test_token_type_is_refresh(self):
         token = create_refresh_token(data={"sub": "user-r2"})

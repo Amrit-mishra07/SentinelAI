@@ -1,48 +1,32 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
+import React, { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 type Theme = 'dark' | 'light';
-
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
-  toggleTheme: () => {},
-});
-
+interface ThemeContextType { theme: Theme; toggleTheme: () => void }
+const ThemeContext = createContext<ThemeContextType>({ theme: 'dark', toggleTheme: () => {} });
 export const useTheme = () => useContext(ThemeContext);
-
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('dark');
-
-  useEffect(() => {
-    // Check local storage or system preference
-    const stored = localStorage.getItem('sentinel-theme') as Theme;
-    if (stored) {
-      setTheme(stored);
-      document.documentElement.classList.toggle('light', stored === 'light');
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      setTheme('light');
-      document.documentElement.classList.add('light');
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    setTheme(prev => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('sentinel-theme', next);
-      document.documentElement.classList.toggle('light', next === 'light');
-      return next;
-    });
+function readTheme(): Theme {
+  const stored = localStorage.getItem('sentinel-theme');
+  if (stored === 'dark' || stored === 'light') return stored;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+function subscribe(update: () => void) {
+  const media = window.matchMedia('(prefers-color-scheme: light)');
+  window.addEventListener('storage', update);
+  window.addEventListener('sentinelai:theme-changed', update);
+  media.addEventListener('change', update);
+  return () => {
+    window.removeEventListener('storage', update);
+    window.removeEventListener('sentinelai:theme-changed', update);
+    media.removeEventListener('change', update);
   };
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
+}
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useSyncExternalStore(subscribe, readTheme, () => 'dark' as Theme);
+  useEffect(() => { document.documentElement.classList.toggle('light', theme === 'light'); }, [theme]);
+  const toggleTheme = () => {
+    localStorage.setItem('sentinel-theme', theme === 'dark' ? 'light' : 'dark');
+    window.dispatchEvent(new Event('sentinelai:theme-changed'));
+  };
+  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
+}

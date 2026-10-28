@@ -1,8 +1,15 @@
 import { SeverityCounts } from '../types';
 
+export function parseApiDate(iso: string): Date {
+  // Legacy API timestamps are stored as UTC but omit the zone suffix.
+  const hasTime = iso.includes('T');
+  const hasZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(iso);
+  return new Date(hasTime && !hasZone ? `${iso}Z` : iso);
+}
+
 export function formatDate(iso: string): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseApiDate(iso);
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -12,7 +19,7 @@ export function formatDate(iso: string): string {
 
 export function formatTime(iso: string): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseApiDate(iso);
   return d.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
@@ -23,7 +30,7 @@ export function formatTime(iso: string): string {
 
 export function formatRelative(iso: string): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseApiDate(iso);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffSecs = Math.floor(diffMs / 1000);
@@ -44,8 +51,8 @@ export function formatRelative(iso: string): string {
 
 export function formatDuration(startIso: string, endIso: string | null): string {
   if (!startIso || !endIso) return '—';
-  const start = new Date(startIso).getTime();
-  const end = new Date(endIso).getTime();
+  const start = parseApiDate(startIso).getTime();
+  const end = parseApiDate(endIso).getTime();
   const diffSecs = Math.floor((end - start) / 1000);
   
   if (diffSecs < 60) return `${diffSecs}s`;

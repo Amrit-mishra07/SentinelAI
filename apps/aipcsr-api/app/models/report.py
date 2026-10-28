@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Enum
+from sqlalchemy import Column, String, Integer, DateTime, Enum, Text
 from datetime import datetime
 import enum
 from app.models.base import Base
@@ -15,7 +15,9 @@ class Report(Base):
     id = Column(String, primary_key=True, index=True)
     scan_id = Column(String, index=True)
     vulnerabilities_count = Column(Integer, default=0)
-    severity = Column(Enum(SeverityLevel), default=SeverityLevel.LOW)
+    severity = Column(Enum(SeverityLevel), nullable=True)
+    status = Column(String, default="pending", nullable=False)
+    error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def __repr__(self):

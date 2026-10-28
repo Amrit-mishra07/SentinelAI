@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import Link from 'next/link';
 import { Scan } from '../../types';
@@ -14,6 +15,7 @@ interface RecentScansTableProps {
 }
 
 export const RecentScansTable: React.FC<RecentScansTableProps> = ({ scans }) => {
+  const router = useRouter();
   if (!scans || scans.length === 0) {
     return (
       <EmptyState 
@@ -47,7 +49,7 @@ export const RecentScansTable: React.FC<RecentScansTableProps> = ({ scans }) => 
                 transition={{ duration: 0.3, delay: i * 0.05 }}
                 key={scan.id} 
                 className="border-b border-sentinel-border/30 hover:bg-sentinel-inset/40 transition-colors group cursor-pointer"
-                onClick={() => window.location.href = `/scans/${scan.id}`}
+                onClick={() => router.push(`/scans/${scan.id}`)}
               >
                 <td className="px-5 py-3">
                   <Badge variant={scan.status} pulse={scan.status === 'scanning'} />

@@ -44,7 +44,7 @@ def setup_db():
     user = User(id="test-user-id", email="test@test.com", hashed_password="pw")
     repo = Repository(id="repo-id", name="test-repo", url="https://github.com/test/repo", owner_id="test-user-id")
     scan = Scan(id="test-scan-123", repository_id="repo-id", status=ScanStatus.COMPLETED)
-    report = Report(id="report1", scan_id="test-scan-123", vulnerabilities_count=0, severity=SeverityLevel.LOW)
+    report = Report(id="report1", scan_id="test-scan-123", vulnerabilities_count=0, severity=SeverityLevel.LOW, status="ready")
     
     db.add(user)
     db.add(repo)

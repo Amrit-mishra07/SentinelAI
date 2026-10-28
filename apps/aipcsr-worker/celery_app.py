@@ -27,5 +27,18 @@ celery_app.conf.imports = (
     "tasks.scan_task",
     "tasks.ai_analysis_task",
     "tasks.report_task",
-    "tasks.patch_task"
+    "tasks.patch_task",
+    "tasks.notification_task",
+    "tasks.integration_task",
 )
+
+celery_app.conf.beat_schedule = {
+    "recover-webhook-dispatch": {
+        "task": "tasks.integration_task.dispatch_received_webhooks",
+        "schedule": 60.0,
+    },
+    "recover-notification-outbox": {
+        "task": "tasks.notification_task.dispatch_pending_notifications",
+        "schedule": 60.0,
+    },
+}

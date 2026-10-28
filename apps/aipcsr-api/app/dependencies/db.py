@@ -6,4 +6,4 @@ db_core_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if db_core_path not in sys.path:
     sys.path.insert(0, db_core_path)
 
-from session import get_db
+from session import engine, get_db

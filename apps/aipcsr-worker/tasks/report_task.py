@@ -1,163 +1,128 @@
-import sys
+"""Atomic PDF generation; the scan completes only after the artifact is ready."""
+import ast
+from datetime import datetime
+from html import escape
+import json
 import os
+from pathlib import Path
+import sys
+import tempfile
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-sys.path.insert(0, os.path.join(base_dir, 'apps', 'aipcsr-api'))
-sys.path.insert(0, os.path.join(base_dir, 'core', 'db-core'))
-
+base_dir = Path(__file__).resolve().parents[3]
+for relative in ("apps/aipcsr-api", "core/db-core"):
+    sys.path.insert(0, str(base_dir / relative))
 from celery import shared_task
+
+
+def _analysis(value: str | None) -> dict:
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except (ValueError, TypeError):
+        try:
+            parsed = ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def render_report(scan, repo, findings: list) -> str:
+    """Escape every repository/AI value; no external resources are accepted."""
+    def text(value):
+        return escape(str(value if value is not None else "—"))
+    parts = ['<html><head><style>body{font-family:Helvetica;font-size:11px}pre{white-space:pre-wrap;font-size:9px}h2{margin-top:20px}</style></head><body>',
+             '<h1>SentinelAI security assessment</h1>',
+             f'<p>Repository: {text(repo.name)}<br/>Branch: {text(scan.branch)}<br/>Commit: {text(scan.commit_hash)}</p>',
+             f'<p>Total findings: {len(findings)}. This assessment covers the configured scanner rules only.</p>']
+    if not findings:
+        parts.append('<p>No findings were detected by the successfully completed configured scanners.</p>')
+    for finding in findings:
+        severity = getattr(finding.severity, "value", finding.severity)
+        analysis = _analysis(finding.ai_patch_code)
+        parts.extend([f'<h2>{text(severity)} · {text(finding.rule_id)}</h2>',
+                      f'<p>{text(finding.file_path)}:{text(finding.line_number)}</p>',
+                      f'<p>{text(finding.message)}</p>',
+                      f'<p>AI status: {text(analysis.get("status", "unavailable"))}</p>',
+                      f'<p>{text(analysis.get("analysis", ""))}</p>',
+                      f'<pre>{text(analysis.get("fix", ""))}</pre>'])
+    parts.append('</body></html>')
+    return "".join(parts)
+
 
 @shared_task(bind=True)
 def generate_report(self, report_id: str):
     from session import SessionLocal
+    from app.config.settings import settings
     from app.models.report import Report
     from app.models.scan import Scan, ScanStatus
-    from app.models.vulnerability import Vulnerability
     from app.models.repository import Repository
+    from app.models.vulnerability import Vulnerability
     from xhtml2pdf import pisa
-    
     db = SessionLocal()
+    temporary = None
     try:
-        self.update_state(state='PROGRESS', meta={'status': 'generating_report'})
-        
-        report = db.query(Report).filter(Report.id == report_id).first()
+        report = db.query(Report).filter(Report.id == report_id).with_for_update().first()
         if not report:
-            return {"error": "Report not found"}
-            
+            raise ValueError("Report not found")
         scan = db.query(Scan).filter(Scan.id == report.scan_id).first()
         if not scan:
-            return {"error": "Scan not found"}
-            
+            raise ValueError("Scan not found")
         repo = db.query(Repository).filter(Repository.id == scan.repository_id).first()
-        repo_name = repo.name if repo else "Local Repository"
-            
-        vulns = db.query(Vulnerability).filter(Vulnerability.report_id == report_id).all()
-        
-        # Calculate severities count
-        critical_count = sum(1 for v in vulns if str(v.severity).split(".")[-1].lower() == "critical")
-        high_count = sum(1 for v in vulns if str(v.severity).split(".")[-1].lower() == "high")
-        medium_count = sum(1 for v in vulns if str(v.severity).split(".")[-1].lower() == "medium")
-        low_count = sum(1 for v in vulns if str(v.severity).split(".")[-1].lower() == "low")
-        
-        # Build HTML content for the PDF report
-        html_template = f"""
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Helvetica, Arial, sans-serif; color: #333333; line-height: 1.4; }}
-                h1 {{ color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }}
-                h2 {{ color: #1e293b; margin-top: 20px; }}
-                .meta-table {{ width: 100%; margin-bottom: 20px; border-collapse: collapse; }}
-                .meta-table td {{ padding: 8px; border: 1px solid #e2e8f0; }}
-                .meta-label {{ font-weight: bold; background-color: #f8fafc; width: 30%; }}
-                .severity-box {{ display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }}
-                .critical {{ background-color: #fef2f2; color: #dc2626; }}
-                .high {{ background-color: #fff7ed; color: #ea580c; }}
-                .medium {{ background-color: #fefce8; color: #ca8a04; }}
-                .low {{ background-color: #f0fdf4; color: #16a34a; }}
-                .vuln-item {{ border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 15px; page-break-inside: avoid; }}
-                .vuln-header {{ font-weight: bold; font-size: 15px; margin-bottom: 8px; }}
-                .vuln-meta {{ font-size: 13px; color: #64748b; margin-bottom: 8px; }}
-                .vuln-desc {{ font-size: 14px; margin-bottom: 10px; }}
-                .code-block {{ background-color: #f8fafc; border: 1px solid #e2e8f0; font-family: monospace; font-size: 12px; padding: 8px; white-space: pre-wrap; }}
-            </style>
-        </head>
-        <body>
-            <h1>SentinelAI Security Assessment Report</h1>
-            
-            <h2>Executive Summary</h2>
-            <table class="meta-table">
-                <tr>
-                    <td class="meta-label">Repository</td>
-                    <td>{repo_name}</td>
-                </tr>
-                <tr>
-                    <td class="meta-label">Branch</td>
-                    <td>{scan.branch or "main"}</td>
-                </tr>
-                <tr>
-                    <td class="meta-label">Commit Hash</td>
-                    <td>{scan.commit_hash or "—"}</td>
-                </tr>
-                <tr>
-                    <td class="meta-label">Total Findings</td>
-                    <td>{len(vulns)}</td>
-                </tr>
-                <tr>
-                    <td class="meta-label">Severity Breakdown</td>
-                    <td>
-                        <span class="severity-box critical">Critical: {critical_count}</span>
-                        <span class="severity-box high">High: {high_count}</span>
-                        <span class="severity-box medium">Medium: {medium_count}</span>
-                        <span class="severity-box low">Low: {low_count}</span>
-                    </td>
-                </tr>
-            </table>
-            
-            <h2>Vulnerability Findings Details</h2>
-        """
-        
-        if not vulns:
-            html_template += "<p>No security vulnerabilities were detected during this assessment scan.</p>"
-        else:
-            for idx, vuln in enumerate(vulns):
-                severity_val = str(vuln.severity).split(".")[-1].lower()
-                html_template += f"""
-                <div class="vuln-item">
-                    <div class="vuln-header">
-                        #{idx+1} [{severity_val.upper()}] - {vuln.rule_id}
-                    </div>
-                    <div class="vuln-meta">
-                        File: {vuln.file_path} | Line: {vuln.line_number}
-                    </div>
-                    <div class="vuln-desc">
-                        {vuln.message}
-                    </div>
-                """
-                if vuln.ai_patch_code:
-                    try:
-                        import ast
-                        patch_dict = ast.literal_eval(vuln.ai_patch_code)
-                        analysis_text = patch_dict.get("analysis", "")
-                        fix_text = patch_dict.get("fix", "")
-                    except:
-                        analysis_text = ""
-                        fix_text = vuln.ai_patch_code
-                        
-                    if analysis_text:
-                        html_template += f"""
-                        <div style="font-weight: bold; font-size: 13px; margin-top: 8px;">AI Analysis:</div>
-                        <div style="font-size: 13px; color: #334155; margin-bottom: 8px;">{analysis_text}</div>
-                        """
-                    if fix_text:
-                        html_template += f"""
-                        <div style="font-weight: bold; font-size: 13px;">Suggested Fix (Diff):</div>
-                        <pre class="code-block">{fix_text}</pre>
-                        """
-                html_template += "</div>"
-                
-        html_template += """
-        </body>
-        </html>
-        """
-        
-        # Save path in shared folder `/aipcsr-api/reports/` (mapped to api folder `/app/reports/`)
-        reports_dir = "/aipcsr-api/reports"
-        os.makedirs(reports_dir, exist_ok=True)
-        pdf_path = os.path.join(reports_dir, f"report_{report_id}.pdf")
-        
-        with open(pdf_path, "wb") as f_pdf:
-            pisa_status = pisa.CreatePDF(html_template, dest=f_pdf)
-            
-        if pisa_status.err:
-            print(f"Error compiling PDF for report {report_id}")
-            
+        if not repo:
+            raise ValueError("Repository not found")
+        existing_path = Path(settings.REPORTS_DIR).resolve() / f"report_{report_id}.pdf"
+        if report.status == "ready" and existing_path.is_file():
+            return {"report_id": report_id, "status": "generated", "pdf_path": str(existing_path)}
+        scan.stage = "reporting"
+        report.status = "pending"
+        report.error_message = None
+        self.update_state(state="PROGRESS", meta={"status": "reporting"})
+        findings = db.query(Vulnerability).filter(Vulnerability.report_id == report_id).all()
+        directory = Path(settings.REPORTS_DIR).resolve()
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"report_{report_id}.pdf"
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".pdf", dir=directory, delete=False) as handle:
+            temporary = handle.name
+            outcome = pisa.CreatePDF(render_report(scan, repo, findings), dest=handle,
+                                     link_callback=lambda uri, relative: (_ for _ in ()).throw(ValueError("External resources are disabled")))
+            if outcome.err:
+                raise RuntimeError("PDF rendering failed")
+        if Path(temporary).stat().st_size == 0:
+            raise RuntimeError("PDF rendering produced an empty artifact")
+        os.replace(temporary, path)
+        temporary = None
+        report.status = "ready"
         scan.status = ScanStatus.COMPLETED
+        scan.stage = "completed"
+        scan.completed_at = datetime.utcnow()
+        scan.error_message = None
+        from tasks.notification_task import enqueue_scan_notification
+        notification = enqueue_scan_notification(db, scan, repo, report)
         db.commit()
-        
-        return {"report_id": report_id, "status": "generated", "pdf_path": pdf_path}
-    except Exception as e:
-        print(f"Report generation task failed: {str(e)}")
-        raise e
+        if notification:
+            # The persisted outbox is recovered by beat if this dispatch fails.
+            try:
+                from tasks.notification_task import send_notification
+                send_notification.delay(notification.id)
+            except Exception:
+                pass
+        return {"report_id": report_id, "status": "generated", "pdf_path": str(path)}
+    except Exception as error:
+        db.rollback()
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if report:
+            report.status = "failed"
+            report.error_message = str(error)[:1000]
+            scan = db.query(Scan).filter(Scan.id == report.scan_id).first()
+            if scan:
+                scan.status = ScanStatus.FAILED
+                scan.stage = "failed"
+                scan.error_message = "Report generation failed"
+                scan.completed_at = datetime.utcnow()
+            db.commit()
+        raise
     finally:
+        if temporary:
+            Path(temporary).unlink(missing_ok=True)
         db.close()

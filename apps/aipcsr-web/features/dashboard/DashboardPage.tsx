@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { MetricCard } from './MetricCard';
 import { RecentScansTable } from './RecentScansTable';
@@ -8,7 +8,9 @@ import { RepositoryHealthList } from './RepositoryHealthList';
 import { AIActivityFeed } from './AIActivityFeed';
 import { SEVERITY_COLORS } from '../../lib/constants';
 import { apiClient } from '../../lib/api-client';
-import { Scan, Repository } from '../../types';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { mapApiError } from '../../lib/error-mapper';
+import { Scan, Repository, DashboardMetrics, Vulnerability } from '../../types';
 
 // Dynamically import Recharts components to reduce initial main bundle size
 const SeverityBars = dynamic(() => import('../../components/charts/SeverityBars').then(mod => mod.SeverityBars), { 
@@ -28,27 +30,30 @@ export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [scans, setScans] = useState<Scan[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardMetrics | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const [error, setError] = useState<string | null>(null);
+  const [activity, setActivity] = useState<Vulnerability[]>([]);
+  const fetchData = useCallback(async () => {
       try {
-        const [scansRes, reposRes, metricsRes] = await Promise.all([
-          apiClient.get('/scan/list'),
-          apiClient.get('/repository/list'),
-          apiClient.get('/dashboard/metrics')
+        const [scansRes, reposRes, metricsRes, activityRes] = await Promise.all([
+          apiClient.get<Scan[]>('/scan/list'),
+          apiClient.get<Repository[]>('/repository/list'),
+          apiClient.get<DashboardMetrics>('/dashboard/metrics'),
+          apiClient.get<Vulnerability[]>('/report/vulnerabilities/list')
         ]);
         setScans(scansRes.data);
         setRepositories(reposRes.data);
         setDashboardData(metricsRes.data);
+        setActivity(activityRes.data.filter(v => !!v.ai_status).slice(0, 10));
+        setError(null);
       } catch (error) {
-        console.error('Failed to load dashboard data:', error);
+        setError(mapApiError(error));
       } finally {
         setLoading(false);
       }
-    };
-    fetchData();
   }, []);
+  useEffect(() => { void Promise.resolve().then(fetchData); }, [fetchData]);
 
   const recentScans = scans.slice(0, 5);
   
@@ -67,7 +72,9 @@ export const DashboardPage: React.FC = () => {
     low: 0
   };
 
-  const timeline = dashboardData?.timeline || [];
+  const timeline = (dashboardData?.timeline || []).map(day => ({ ...day, severity: day.severity ?? null }));
+
+  if (error) return <ErrorState description={error} onRetry={fetchData} />;
 
   return (
     <div className="space-y-8 animate-slide-in-right" style={{ animationDuration: '0.4s' }}>
@@ -100,7 +107,7 @@ export const DashboardPage: React.FC = () => {
           loading={loading}
         />
         <MetricCard
-          title="Patched"
+          title="Draft PR coverage"
           value={metrics.patched_percentage}
           suffix="%"
           trend={dashboardData?.trends?.patched_percentage ?? 0}
@@ -155,7 +162,7 @@ export const DashboardPage: React.FC = () => {
         {loading ? (
           <div className="h-[140px] flex items-end justify-between gap-1 animate-pulse">
             {Array.from({ length: 30 }).map((_, i) => (
-              <div key={i} className="flex-1 bg-sentinel-inset rounded-sm" style={{ height: `${Math.random() * 80 + 20}%` }} />
+              <div key={i} className="flex-1 bg-sentinel-inset rounded-sm" style={{ height: `${((i * 17) % 80) + 20}%` }} />
             ))}
           </div>
         ) : (
@@ -203,12 +210,12 @@ export const DashboardPage: React.FC = () => {
       <div className="glass-card rounded-xl p-6">
         <h3 className="text-[16px] font-medium text-sentinel-text-primary mb-4 flex items-center">
           <svg className="w-5 h-5 mr-2 text-sentinel-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          AI Patch Activity
+          AI Analysis Activity
         </h3>
         {loading ? (
            <div className="h-[120px] bg-[#0a0d14] rounded animate-pulse"></div>
         ) : (
-          <AIActivityFeed events={[]} />
+          <AIActivityFeed events={activity.map(v => ({ time: v.created_at, file: v.file_path, status: v.patch_status === 'pr_opened' ? 'Draft PR opened' : v.ai_status || 'Analyzed', severity: v.severity }))} />
         )}
       </div>
 

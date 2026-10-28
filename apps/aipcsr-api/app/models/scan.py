@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Enum
+from sqlalchemy import Column, String, DateTime, Enum, JSON
 from datetime import datetime
 import enum
 from app.models.base import Base
@@ -16,7 +16,10 @@ class Scan(Base):
     repository_id = Column(String, index=True) # References the Repository model
     branch = Column(String, default="main")
     commit_hash = Column(String, nullable=True)
+    requested_commit = Column(String, nullable=True)
     status = Column(Enum(ScanStatus), default=ScanStatus.PENDING)
+    stage = Column(String, default="pending", nullable=False)
+    engine_results = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
