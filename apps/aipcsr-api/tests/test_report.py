@@ -68,10 +68,10 @@ def test_get_report():
 
 def test_download_report():
     scan_id = "test-scan-123"
-    import os
-    os.makedirs("reports", exist_ok=True)
-    report_pdf = "reports/report_report1.pdf"
-    with open(report_pdf, "w") as f:
+    from app.routers.report import report_path
+    report_pdf = report_path("report1")
+    report_pdf.parent.mkdir(parents=True, exist_ok=True)
+    with report_pdf.open("w") as f:
         f.write("mock pdf content")
         
     try:
@@ -79,5 +79,4 @@ def test_download_report():
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/pdf"
     finally:
-        if os.path.exists(report_pdf):
-            os.remove(report_pdf)
+        report_pdf.unlink(missing_ok=True)
