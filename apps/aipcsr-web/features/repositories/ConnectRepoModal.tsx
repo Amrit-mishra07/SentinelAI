@@ -57,8 +57,8 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
       onClose();
       setRepoUrl('');
       setBranch('main');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to connect repository');
+    } catch (err: unknown) {
+      toast.error((err instanceof Error ? err.message : '') || 'Failed to connect repository');
     } finally {
       setLoading(false);
     }

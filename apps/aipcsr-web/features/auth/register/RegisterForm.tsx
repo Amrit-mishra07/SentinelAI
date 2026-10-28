@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { useToastContext } from '../../../components/ui/ToastProvider';
-import { apiClient } from '../../../lib/api-client';
+import { apiClient, ApiClientError } from '../../../lib/api-client';
 import { motion } from 'framer-motion';
 
 export const RegisterForm: React.FC = () => {
@@ -73,15 +73,15 @@ export const RegisterForm: React.FC = () => {
         router.push('/login');
       }, 1000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       setShake(true);
       setTimeout(() => setShake(false), 400);
       
-      const is400 = err.original?.response?.status === 400;
+      const is400 = err instanceof ApiClientError && err.status === 400;
       if (is400) {
-        setErrors({ email: err.message || 'Email already registered' });
+        setErrors({ email: (err instanceof Error ? err.message : '') || 'Email already registered' });
       } else {
-        toastError(err.message || 'Connection failed. Check your internet connection.');
+        toastError((err instanceof Error ? err.message : '') || 'Connection failed. Check your internet connection.');
       }
     } finally {
       setLoading(false);

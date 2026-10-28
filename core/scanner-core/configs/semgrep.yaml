@@ -1,0 +1,22 @@
+# Bounded offline baseline; not the full Semgrep registry audit pack.
+rules:
+  - id: python-eval
+    languages: [python]
+    severity: ERROR
+    message: Dynamic evaluation can execute untrusted input. Avoid eval.
+    pattern: eval(...)
+  - id: python-exec
+    languages: [python]
+    severity: ERROR
+    message: Dynamic execution can execute untrusted input. Avoid exec.
+    pattern: exec(...)
+  - id: python-shell-command
+    languages: [python]
+    severity: ERROR
+    message: Shell execution requires input validation. Use argument lists without shell=True.
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+  - id: javascript-eval
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Dynamic evaluation can execute untrusted input. Avoid eval.
+    pattern: eval(...)

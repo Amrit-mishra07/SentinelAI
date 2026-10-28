@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { useToastContext } from '../../../components/ui/ToastProvider';
-import { apiClient } from '../../../lib/api-client';
+import { apiClient, ApiClientError } from '../../../lib/api-client';
 import { AuthResponse } from '../../../types';
 import { motion } from 'framer-motion';
 
@@ -61,17 +61,17 @@ export const LoginForm: React.FC = () => {
         router.push('/dashboard');
       }, 300);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       setShake(true);
       setTimeout(() => setShake(false), 400);
       
       // If our interceptor threw it, err.original is the AxiosError
-      const is401 = err.original?.response?.status === 401;
+      const is401 = err instanceof ApiClientError && err.status === 401;
       
       if (is401) {
         setErrors({ email: 'Invalid email or password' });
       } else {
-        toastError(err.message || 'Connection failed. Check your internet connection.');
+        toastError((err instanceof Error ? err.message : '') || 'Connection failed. Check your internet connection.');
       }
     } finally {
       setLoading(false);

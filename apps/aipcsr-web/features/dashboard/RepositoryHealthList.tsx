@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import Link from 'next/link';
 import { Repository } from '../../types';
@@ -16,6 +17,7 @@ interface RepositoryHealthListProps {
 }
 
 export const RepositoryHealthList: React.FC<RepositoryHealthListProps> = ({ repositories }) => {
+  const router = useRouter();
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-2 space-y-2 mb-4">
@@ -29,7 +31,7 @@ export const RepositoryHealthList: React.FC<RepositoryHealthListProps> = ({ repo
               transition={{ duration: 0.3, delay: i * 0.05 }}
               key={repo.id}
               className="flex items-center justify-between p-3 glass rounded-lg hover:bg-sentinel-inset/40 transition-all group cursor-pointer relative overflow-hidden"
-              onClick={() => window.location.href = `/repositories`}
+              onClick={() => router.push(`/repositories`)}
             >
               <div 
                 className="absolute left-0 top-0 bottom-0 w-[3px]"

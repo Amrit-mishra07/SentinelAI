@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.routers import auth, scan, repository, report, dashboard
+from app.routers import auth, scan, repository, report, dashboard, integrations, notifications
 from app.config.settings import settings
 from app.limiter import limiter
 
@@ -27,14 +27,9 @@ app.include_router(scan.router, prefix="/api/scan", tags=["scan"])
 app.include_router(repository.router, prefix="/api/repository", tags=["repository"])
 app.include_router(report.router, prefix="/api/report", tags=["report"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
-import sys
-import os
-
-db_core_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'core', 'db-core'))
-if db_core_path not in sys.path:
-    sys.path.insert(0, db_core_path)
-
-from session import engine
+app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
+from app.dependencies.db import engine
 from app.models.base import Base
 # Import all models to ensure they are registered with Base
 from app import models

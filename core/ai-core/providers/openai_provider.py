@@ -1,87 +1,139 @@
-import requests
-import sys
+"""OpenAI analysis with strict output validation and honest failure provenance."""
+
+import json
 import os
+import sys
+import time
 
-# Add apps/aipcsr-api to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'apps', 'aipcsr-api')))
-# Add ai-core to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import requests
 
+# Keep legacy top-level core imports usable while packaged imports remain relative.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "apps", "aipcsr-api")))
 from app.config.settings import settings
-from prompt_manager import PromptManager
-from response_parser import ResponseParser
+
+try:
+    from ..prompt_manager import PromptManager
+    from ..response_parser import ResponseParser
+    from ..patch_generator import apply_unified_diff, source_hash, validate_source
+except ImportError:
+    from prompt_manager import PromptManager
+    from response_parser import ResponseParser
+    from patch_generator import apply_unified_diff, source_hash, validate_source
+
 
 class AIProvider:
     def analyze_vulnerability(self, vulnerability: dict) -> dict:
         raise NotImplementedError
 
-import time
 
 class OpenAIProvider(AIProvider):
-    def __init__(self):
-        self.api_key = settings.OPENAI_API_KEY
-        self.model = "gpt-4o-mini"
-        self.test_mode = os.getenv("TEST_MODE", "false").lower() == "true"
-    
-    def analyze_vulnerability(self, vulnerability: dict) -> dict:
-        """Analyze vulnerability and suggest fixes using OpenAI"""
-        if self.test_mode:
-            time.sleep(2)
-            return {
-                "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
-                "analysis": "[MOCK] This is a simulated AI analysis for load testing purposes.",
-                "fix": "- old_code()\n+ new_secure_code()"
-            }
+    """Use a supplied user key or the explicitly configured server key."""
 
-        fallback_data = {
+    def __init__(self, api_key: str | None = None):
+        self.api_key = settings.OPENAI_API_KEY if api_key is None else api_key
+        self.model = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")
+        self.timeout = getattr(settings, "OPENAI_TIMEOUT_SECONDS", 45)
+
+    def analyze_vulnerability(self, vulnerability: dict) -> dict:
+        source = vulnerability.get("source_content") or ""
+        result = {
             "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
-            "analysis": "This vulnerability exposes the application to security risks. Avoid concatenating parameters directly into queries or hardcoding secrets.",
-            "fix": ""
+            "analysis": "",
+            "fix": "",
+            "status": "unavailable",
+            "provider": "openai",
+            "model": self.model,
+            "source_sha": vulnerability.get("commit_hash"),
+            "source_hash": source_hash(source),
+            "prompt_version": PromptManager.VERSION,
+            "validation": {"status": "not_run", "checks": []},
         }
-        
-        issue_text = str(vulnerability.get("issue", "")).lower()
-        file_path = str(vulnerability.get("file", "")).lower()
-        
-        if "sql" in issue_text or "injection" in issue_text or "db.py" in file_path:
-            fallback_data = {
-                "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
-                "analysis": "The code constructs SQL queries by concatenating raw inputs directly, making it highly vulnerable to SQL Injection attacks. Parameterize query inputs using database bindings instead.",
-                "fix": "-    cursor.execute(\"SELECT * FROM users WHERE username = '\" + username + \"'\")\n+    cursor.execute(\"SELECT * FROM users WHERE username = ?\", (username,))"
-            }
-        elif "secret" in issue_text or "key" in issue_text or "password" in issue_text or "auth.py" in file_path:
-            fallback_data = {
-                "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
-                "analysis": "Hardcoded secret detected. Plaintext secrets checked into version control expose the system to compromise if repository files are accessed.",
-                "fix": "-    api_key = \"secret_key_abc123\"\n+    import os\n+    api_key = os.getenv(\"API_KEY\")"
-            }
-            
         if not self.api_key:
-            return fallback_data
-            
-        prompt = PromptManager.get_prompt("analyze", context=str(vulnerability))
-        
-        try:
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 500
+            result["error"] = "AI analysis unavailable: configure an OpenAI API key in integrations or on the server"
+            return result
+        if not source:
+            result["error"] = "AI patch unavailable: the scanned source snapshot was not captured"
+            return result
+        if len(source.encode("utf-8")) > 131072:
+            result["error"] = "AI patch unavailable: source exceeds the 128 KiB context limit"
+            return result
+        context = {
+            key: vulnerability.get(key)
+            for key in ("file", "line", "issue", "severity", "rule_id", "commit_hash", "source_content", "source_context")
+        }
+        request_body = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": PromptManager.SYSTEM_PROMPT},
+                {"role": "user", "content": PromptManager.get_prompt("analyze", context=json.dumps(context))},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "security_analysis",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {"analysis": {"type": "string"}, "fix": {"type": "string"}},
+                        "required": ["analysis", "fix"],
+                        "additionalProperties": False,
+                    },
                 },
-                timeout=5
-            )
-            
-            if response.status_code == 200:
-                raw_content = response.json()["choices"][0]["message"]["content"]
-                parsed_response = ResponseParser.parse_ai_response(raw_content)
-                
-                return {
-                    "vulnerability_id": f"{vulnerability.get('file')}:{vulnerability.get('line')}",
-                    "analysis": parsed_response.get("analysis", raw_content),
-                    "fix": parsed_response.get("fix", "")
-                }
-        except Exception as e:
-            return fallback_data
-            
-        return fallback_data
+            },
+            "max_tokens": 4096,
+        }
+        error = "OpenAI request did not complete"
+        for attempt in range(3):
+            try:
+                response = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                    json=request_body,
+                    timeout=(5, self.timeout),
+                )
+                if response.status_code == 429 or response.status_code >= 500:
+                    error = f"OpenAI temporarily unavailable (HTTP {response.status_code})"
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                    break
+                if response.status_code != 200:
+                    error = f"OpenAI rejected the analysis request (HTTP {response.status_code})"
+                    break
+                choices = response.json().get("choices", [])
+                if not choices or choices[0].get("finish_reason") != "stop":
+                    raise ValueError("OpenAI response was incomplete")
+                message = choices[0].get("message", {})
+                if message.get("refusal"):
+                    raise ValueError("OpenAI declined to generate a patch for this finding")
+                parsed = ResponseParser.parse_ai_response(message.get("content"))
+                result.update(parsed, status="available")
+                if parsed["fix"]:
+                    try:
+                        updated = apply_unified_diff(source, parsed["fix"], vulnerability["file"])
+                        if vulnerability["file"].endswith(".py"):
+                            result["validation"] = validate_source(updated, vulnerability["file"])
+                        else:
+                            result["validation"] = {
+                                "status": "not_run",
+                                "checks": ["exact_diff_context"],
+                                "error": "Automatic validation supports Python only; manually review this suggestion",
+                            }
+                    except (KeyError, ValueError) as exc:
+                        result.update(status="failed", fix="", error=str(exc))
+                        result["validation"] = {"status": "failed", "checks": [], "error": str(exc)}
+                return result
+            except (requests.Timeout, requests.ConnectionError):
+                error = "OpenAI request timed out or the service could not be reached"
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                break
+            except (ValueError, KeyError, TypeError, IndexError) as exc:
+                error = str(exc) if isinstance(exc, ValueError) else "OpenAI response did not match the expected structure"
+                break
+            except requests.RequestException:
+                error = "OpenAI request failed"
+                break
+        result.update(status="failed", error=error)
+        return result

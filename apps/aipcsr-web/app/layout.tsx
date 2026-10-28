@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     template: '%s | SentinelAI',
     default: 'SentinelAI — AI-Powered Security Code Review',
   },
-  description: 'Secure your code at the speed of thought. SentinelAI automatically scans your repositories, identifies critical vulnerabilities, and generates AI-powered patches via GPT-4.',
-  keywords: ['security', 'code review', 'ai', 'gpt-4', 'vulnerability scanner', 'devsecops'],
+  description: 'Secure your code at the speed of thought. SentinelAI automatically scans your repositories, identifies critical vulnerabilities, and generates AI-powered patches with a configured AI provider.',
+  keywords: ['security', 'code review', 'ai', 'vulnerability scanner', 'devsecops'],
   authors: [{ name: 'Amrit Mishra' }],
   creator: 'Amrit Mishra',
   openGraph: {

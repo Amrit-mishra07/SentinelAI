@@ -1,10 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from app.schemas.git import normalize_github_url, validate_branch
 from typing import Optional
 from datetime import datetime
 
 class RepositoryCreate(BaseModel):
     url: str
     branch: str = "main"
+
+    _normalize_url = field_validator("url")(normalize_github_url)
+    _validate_branch = field_validator("branch")(validate_branch)
 
 class RepositoryResponse(BaseModel):
     id: str

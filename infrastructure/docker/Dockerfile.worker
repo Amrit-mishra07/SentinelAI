@@ -1,22 +1,35 @@
-FROM python:3.11-slim
+FROM python:3.12-slim-bookworm
 
-WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/srv/sentinel/apps/aipcsr-worker:/srv/sentinel/apps/aipcsr-api:/srv/sentinel/core/db-core:/srv/sentinel/core/scanner-core:/srv/sentinel/core/ai-core \
+    PATH=/opt/scanners/python/bin:/opt/scanners/node_modules/.bin:/usr/local/bin:/usr/bin:/bin \
+    SCANNER_PATH=/opt/scanners/python/bin:/opt/scanners/node_modules/.bin:/usr/local/bin:/usr/bin:/bin \
+    SCANNER_SANDBOX=bwrap \
+    REPORTS_DIR=/reports
 
-RUN apt-get update && apt-get install -y \
-    git \
-    nodejs \
-    npm \
-    && npm install -g eslint \
+WORKDIR /srv/sentinel
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git nodejs npm bubblewrap ca-certificates util-linux \
     && rm -rf /var/lib/apt/lists/*
+COPY apps/aipcsr-api/requirements.txt apps/aipcsr-api/requirements.txt
+COPY apps/aipcsr-worker/requirements.txt apps/aipcsr-worker/requirements.txt
+RUN /usr/local/bin/pip install --no-cache-dir -r apps/aipcsr-worker/requirements.txt \
+    && /usr/local/bin/python -m venv /opt/scanners/python \
+    && /opt/scanners/python/bin/pip install --no-cache-dir setuptools==80.10.2 bandit==1.9.4 semgrep==1.99.0 \
+    && cd /opt/scanners \
+    && npm init -y \
+    && npm install --save-exact eslint@9.39.4 @typescript-eslint/parser@8.46.2 \
+    && npm cache clean --force \
+    && /usr/sbin/groupadd --gid 10001 sentinel \
+    && /usr/sbin/useradd --uid 10001 --gid sentinel --create-home --shell /usr/sbin/nologin sentinel \
+    && mkdir /reports \
+    && chown 10001:10001 /reports
+COPY --chown=10001:10001 apps/aipcsr-worker/ apps/aipcsr-worker/
+COPY --chown=10001:10001 apps/aipcsr-api/ apps/aipcsr-api/
+COPY --chown=10001:10001 core/ core/
 
-COPY apps/aipcsr-worker/requirements.txt .
-RUN apt-get update && apt-get install -y build-essential libpq-dev gcc && \
-    pip install -U pip && \
-    pip install --no-cache-dir -r requirements.txt bandit semgrep
-
-COPY apps/aipcsr-worker/ .
-COPY core/ /core
-
-ENV PYTHONUNBUFFERED=1
-
-CMD ["celery", "-A", "celery_app", "worker", "--loglevel=info", "-c", "4"]
+USER 10001:10001
+WORKDIR /srv/sentinel/apps/aipcsr-worker
+CMD ["/usr/local/bin/celery", "-A", "celery_app", "worker", "--loglevel=info", "--concurrency=2"]

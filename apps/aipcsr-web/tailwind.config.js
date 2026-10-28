@@ -33,8 +33,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       animation: {
         shimmer: 'shimmer 2s infinite linear',

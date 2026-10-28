@@ -1,160 +1,139 @@
-import sys
+"""Repository-to-findings pipeline. Failed scans never substitute demonstration data."""
 import os
+from pathlib import Path
+import sys
 import uuid
 from datetime import datetime
-import requests
-import re
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-sys.path.insert(0, os.path.join(base_dir, 'apps', 'aipcsr-api'))
-sys.path.insert(0, os.path.join(base_dir, 'core', 'db-core'))
-sys.path.insert(0, os.path.join(base_dir, 'core', 'scanner-core'))
+base_dir = Path(__file__).resolve().parents[3]
+for relative in ("apps/aipcsr-api", "core/db-core", "core/scanner-core"):
+    sys.path.insert(0, str(base_dir / relative))
 
 from celery import shared_task
 
+
+def _source_path(root: Path, raw: str) -> Path:
+    if raw.startswith("/scan/"):
+        raw = raw[len("/scan/"):]
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    if candidate.is_symlink():
+        raise ValueError("Scanner returned a symlink")
+    resolved = candidate.resolve()
+    resolved.relative_to(root.resolve())
+    return resolved
+
+
+def _read_source(path: Path) -> tuple[str | None, str | None]:
+    if path.name.startswith(".env") or path.suffix in {".pem", ".key", ".p12", ".pfx"}:
+        return None, None
+    if not path.is_file() or path.stat().st_size > 128 * 1024:
+        return None, None
+    try:
+        content = path.read_bytes().decode("utf-8")
+        if "\x00" in content:
+            return None, None
+        return content, content
+    except (OSError, UnicodeError):
+        return None, None
+
+
 @shared_task(bind=True)
 def scan_repository(self, scan_id: str, repository_url: str):
-    """Execute repository scan using scanner engines and save to DB"""
     from session import SessionLocal
     from app.models.scan import Scan, ScanStatus
-    from app.models.report import Report
+    from app.models.report import Report, SeverityLevel
+    from app.models.repository import Repository
     from app.models.vulnerability import Vulnerability
+    from app.models.user import User
+    from app.services.github_credentials import get_github_token
     from orchestrator import ScannerOrchestrator
+    from repo_cloner import RepoCloner
     from tasks.ai_analysis_task import analyze_with_ai
-    
-    import tempfile
-    import shutil
-    import subprocess
 
     db = SessionLocal()
-    temp_dir = ""
+    cloner = RepoCloner()
     try:
-        self.update_state(state='PROGRESS', meta={'status': 'scanning'})
-        
         scan = db.query(Scan).filter(Scan.id == scan_id).first()
-        if scan:
-            scan.status = ScanStatus.SCANNING
-            scan.started_at = datetime.utcnow()
-            db.commit()
-
-        # [NEW] Pre-flight check: Enforce Repository Size Limit (e.g., 500MB)
-        MAX_SIZE_KB = 500 * 1024
-        match = re.search(r"github\.com/([^/]+)/([^/.]+)", repository_url)
-        if match:
-            owner, repo_name = match.groups()
-            try:
-                api_url = f"https://api.github.com/repos/{owner}/{repo_name}"
-                repo_data = requests.get(api_url, timeout=5).json()
-                repo_size_kb = repo_data.get("size", 0)
-                
-                if repo_size_kb > MAX_SIZE_KB:
-                    raise ValueError(f"Repository exceeds the maximum allowed size of 500MB (Current size: {repo_size_kb // 1024}MB).")
-            except ValueError as ve:
-                raise ve
-            except Exception as e:
-                print(f"Warning: Could not fetch repo size from GitHub API: {e}")
-
-        # Create temporary directory inside the container and clone the repository
-        temp_dir = tempfile.mkdtemp(prefix=f"scan_{scan_id}_")
-        clone_failed = False
-        error_msg = ""
-        try:
-            clone_res = subprocess.run(
-                ["git", "clone", "--depth", "1", repository_url, temp_dir],
-                capture_output=True,
-                text=True,
-                timeout=8
-            )
-            if clone_res.returncode != 0:
-                clone_failed = True
-                error_msg = clone_res.stderr.strip() if clone_res.stderr else "Git clone exit code was non-zero"
-        except subprocess.TimeoutExpired:
-            clone_failed = True
-            error_msg = "Git clone operation timed out after 8 seconds"
-            
-        if clone_failed:
-            scan = db.query(Scan).filter(Scan.id == scan_id).first()
-            if scan:
-                scan.error_message = error_msg
-                db.commit()
-            import os
-            # Fallback to local mock files if offline / unable to access git url
-            print(f"Git clone failed: {error_msg}. Creating local mock files...")
-            os.makedirs(os.path.join(temp_dir, "src"), exist_ok=True)
-            with open(os.path.join(temp_dir, "src", "db.py"), "w") as f:
-                f.write('import sqlite3\n\ndef query_user(username):\n    conn = sqlite3.connect("users.db")\n    cursor = conn.cursor()\n    # SQL Injection Vulnerability\n    cursor.execute("SELECT * FROM users WHERE username = \'" + username + "\'")\n    return cursor.fetchall()\n')
-            with open(os.path.join(temp_dir, "src", "auth.py"), "w") as f:
-                f.write('def login():\n    # Hardcoded Secret Vulnerability\n    api_key = "secret_key_abc123"\n    return api_key\n')
-            
-        orchestrator = ScannerOrchestrator()
-        results = orchestrator.scan(temp_dir)
-        
-        report_id = str(uuid.uuid4())
-        report = Report(id=report_id, scan_id=scan_id, vulnerabilities_count=len(results.get("vulnerabilities", [])))
-        db.add(report)
-        
-        vulnerabilities = results.get("vulnerabilities", [])
-        for v in vulnerabilities:
-            severity_str = v.get("severity", "low").upper()
-            file_path = v.get("file", "")
-            # Make the file path relative to the clone directory root
-            if file_path.startswith(temp_dir):
-                file_path = os.path.relpath(file_path, temp_dir)
-                
-            vuln = Vulnerability(
-                id=str(uuid.uuid4()),
-                report_id=report_id,
-                rule_id=v.get("engine", "unknown")[:50],
-                message=v.get("issue"),
-                file_path=file_path,
-                line_number=v.get("line"),
-                severity=severity_str
-            )
-            db.add(vuln)
-            
-        # Update Repository last scan metrics
-        scan = db.query(Scan).filter(Scan.id == scan_id).first()
-        if scan:
-            from app.models.repository import Repository
-            repo = db.query(Repository).filter(Repository.id == scan.repository_id).first()
-            if repo:
-                repo.last_scan_at = datetime.utcnow()
-                severities = [v.get("severity", "low").upper() for v in vulnerabilities]
-                if "CRITICAL" in severities:
-                    repo.last_scan_severity = "CRITICAL"
-                elif "HIGH" in severities:
-                    repo.last_scan_severity = "HIGH"
-                elif "MEDIUM" in severities:
-                    repo.last_scan_severity = "MEDIUM"
-                elif "LOW" in severities:
-                    repo.last_scan_severity = "LOW"
-                else:
-                    repo.last_scan_severity = None
-                    
+        if not scan:
+            raise ValueError("Scan not found")
+        claimed = db.query(Scan).filter(Scan.id == scan_id, Scan.status == ScanStatus.PENDING).update(
+            {Scan.status: ScanStatus.SCANNING, Scan.stage: "cloning", Scan.started_at: datetime.utcnow()},
+            synchronize_session=False)
         db.commit()
-        
-        # Trigger AI Analysis asynchronously
-        analyze_with_ai.delay(report_id, scan_id)
-        
-        return {
-            "scan_id": scan_id,
-            "status": "scanning_complete_awaiting_ai",
-            "vulnerabilities_found": len(vulnerabilities),
-            "report_id": report_id
+        if not claimed:
+            return {"scan_id": scan_id, "status": "already_started"}
+        db.refresh(scan)
+        repo = db.query(Repository).filter(Repository.id == scan.repository_id).first()
+        if not repo or repo.url != repository_url:
+            raise ValueError("Scan repository does not match the saved repository")
+        user = db.query(User).filter(User.id == repo.owner_id).first()
+        token = get_github_token(user, db) if user and user.github_token else None
+        self.update_state(state="PROGRESS", meta={"status": "cloning"})
+        directory = cloner.clone(repo.url, scan.branch, token)
+        scan.commit_hash = cloner.commit_hash(directory)
+        if getattr(scan, "requested_commit", None) and scan.commit_hash != scan.requested_commit:
+            raise ValueError("Repository branch changed after the GitHub event; scan the current commit again")
+        scan.stage = "scanning"
+        db.commit()
+        self.update_state(state="PROGRESS", meta={"status": "scanning"})
+        results = ScannerOrchestrator().scan(directory)
+        scan.engine_results = {
+            name: {k: v for k, v in outcome.items() if k != "vulnerabilities"}
+            for name, outcome in results["engines_results"].items()
         }
-    except Exception as e:
+        db.commit()
+        if results.get("status") != "success":
+            raise RuntimeError("; ".join(results.get("failures", ["Scanner execution failed"]))[:2000])
+
+        root = Path(directory).resolve()
+        findings = []
+        seen = set()
+        for finding in results["vulnerabilities"]:
+            path = _source_path(root, finding["file"])
+            relative = path.relative_to(root).as_posix()
+            severity = finding.get("severity", "low").lower()
+            if severity not in {"critical", "high", "medium", "low"}:
+                severity = "low"
+            rule_id = finding.get("rule_id") or finding.get("engine", "unknown")
+            key = (relative, finding.get("line"), rule_id, finding.get("engine"))
+            if key in seen:
+                continue
+            seen.add(key)
+            findings.append((finding, path, relative, severity, rule_id))
+        rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+        highest = max((f[3] for f in findings), key=lambda value: rank[value], default=None)
+        report = Report(id=str(uuid.uuid4()), scan_id=scan_id, vulnerabilities_count=len(findings),
+                        severity=SeverityLevel(highest) if highest else None, status="pending")
+        db.add(report)
+        for finding, path, relative, severity, rule_id in findings:
+            content, context = _read_source(path)
+            db.add(Vulnerability(id=str(uuid.uuid4()), report_id=report.id, rule_id=rule_id,
+                                 message=finding.get("issue", "Security finding"), file_path=relative,
+                                 line_number=finding.get("line"), severity=SeverityLevel(severity),
+                                 source_content=content, source_context=context))
+        repo.last_scan_at = datetime.utcnow()
+        repo.last_scan_severity = highest
+        scan.stage = "analyzing"
+        db.commit()
+        analyze_with_ai.delay(report.id, scan_id)
+        return {"scan_id": scan_id, "status": "scanning_complete_awaiting_ai",
+                "report_id": report.id, "vulnerabilities_found": len(findings)}
+    except Exception as error:
         db.rollback()
         scan = db.query(Scan).filter(Scan.id == scan_id).first()
         if scan:
             scan.status = ScanStatus.FAILED
-            if not scan.error_message:
-                scan.error_message = str(e)
+            scan.stage = "failed"
+            scan.completed_at = datetime.utcnow()
+            scan.error_message = str(error)[:2000]
+            report = db.query(Report).filter(Report.scan_id == scan_id).first()
+            if report and report.status != "ready":
+                report.status = "failed"
+                report.error_message = "Scan pipeline failed before report completion"
             db.commit()
-            
-        print(f"Scan task failed: {str(e)}")
-        raise e
+        raise
     finally:
-        # Clean up temporary directory
-        if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
+        cloner.cleanup_all()
         db.close()

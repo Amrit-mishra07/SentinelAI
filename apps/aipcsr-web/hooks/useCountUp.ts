@@ -4,10 +4,7 @@ export function useCountUp(target: number, duration = 1000): number {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setCount(target);
-      return;
-    }
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let startTime: number | null = null;
     let animationFrame: number;
@@ -15,6 +12,7 @@ export function useCountUp(target: number, duration = 1000): number {
     const easeOutQuad = (t: number) => t * (2 - t);
 
     const animate = (timestamp: number) => {
+      if (reducedMotion || duration <= 0) { setCount(target); return; }
       if (!startTime) startTime = timestamp;
       const progress = timestamp - startTime;
       const percentage = Math.min(progress / duration, 1);

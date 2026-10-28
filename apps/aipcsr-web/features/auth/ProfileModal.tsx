@@ -27,11 +27,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Update local state when user changes
-  React.useEffect(() => {
-    if (user?.email) setEmail(user.email);
-  }, [user]);
-
   const handleLogout = () => {
     toast.success('Logged out successfully');
     logout();
@@ -48,8 +43,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
       window.dispatchEvent(new Event('sentinelai:auth-changed'));
       toast.success('Profile updated successfully');
       setEditingInfo(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update profile');
+    } catch (err: unknown) {
+      toast.error((err instanceof Error ? err.message : '') || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -63,8 +58,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
       toast.success('Password updated successfully');
       setEditingPassword(false);
       setPassword('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update password');
+    } catch (err: unknown) {
+      toast.error((err instanceof Error ? err.message : '') || 'Failed to update password');
     } finally {
       setLoading(false);
     }
@@ -90,7 +85,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         <div className="space-y-4">
           {!editingInfo ? (
             <button 
-              onClick={() => setEditingInfo(true)}
+              onClick={() => { setEmail(user?.email || ''); setEditingInfo(true); }}
               className="w-full flex items-center justify-between px-4 py-3 rounded-md hover:bg-sentinel-elevated transition-colors text-sentinel-text-primary text-[14px] font-medium border border-transparent hover:border-sentinel-border"
             >
               <span className="flex items-center">

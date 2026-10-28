@@ -1,52 +1,27 @@
-import subprocess
 import json
-import os
-from abc import ABC, abstractmethod
+from .base import BaseEngine, run_scanner, has_sources, CONFIG_DIR
 
-class BaseEngine(ABC):
-    @abstractmethod
-    def run(self, repository: str) -> dict:
-        pass
 
 class ESLintEngine(BaseEngine):
+    name = "eslint"
+
     def run(self, repository: str) -> dict:
-        """Run ESLint for JavaScript/TypeScript security checks"""
+        if not has_sources(repository, (".js", ".ts", ".jsx", ".tsx")):
+            return self.skipped()
         try:
-            if not any(fname.endswith(('.js', '.ts', '.jsx', '.tsx')) for root, _, files in os.walk(repository) for fname in files):
-                return {"engine": "eslint", "vulnerabilities": []}
-
-            result = subprocess.run(
-                ["npx", "eslint", ".", "--ext", ".js,.jsx,.ts,.tsx", "-f", "json"],
-                cwd=repository,
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
-            
-            if not result.stdout.strip():
-                return {"engine": "eslint", "vulnerabilities": []}
-
+            result = run_scanner(["eslint", "--no-config-lookup", "--config", str(CONFIG_DIR / "eslint.config.mjs"),
+                                  "--no-error-on-unmatched-pattern", "-f", "json", "."], repository)
+            if result.returncode not in (0, 1):
+                raise RuntimeError(f"ESLint exited {result.returncode}: {result.stderr[:1000]}")
             output = json.loads(result.stdout)
-            
-            vulnerabilities = []
+            findings = []
             for file_result in output:
-                file_path = file_result.get("filePath")
+                if file_result.get("fatalErrorCount", 0):
+                    raise RuntimeError("ESLint could not parse one or more source files")
                 for message in file_result.get("messages", []):
-                    severity = "high" if message.get("severity") == 2 else "medium"
-                    vulnerabilities.append({
-                        "file": file_path,
-                        "line": message.get("line"),
-                        "issue": message.get("message"),
-                        "severity": severity,
-                        "engine": "eslint"
-                    })
-            
-            return {
-                "engine": "eslint",
-                "vulnerabilities": vulnerabilities
-            }
-        except Exception as e:
-            return {
-                "engine": "eslint",
-                "error": str(e)
-            }
+                    findings.append({"file": file_result["filePath"], "line": message.get("line"),
+                                     "issue": message["message"], "severity": "high" if message.get("severity") == 2 else "medium",
+                                     "rule_id": message.get("ruleId") or "eslint", "engine": self.name})
+            return {"engine": self.name, "status": "success", "vulnerabilities": findings}
+        except Exception as error:
+            return self.failure(error)

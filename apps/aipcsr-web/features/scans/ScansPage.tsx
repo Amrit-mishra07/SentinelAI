@@ -1,7 +1,10 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, { useState, useMemo, useEffect } from 'react';
 import { ScanStatus, Scan } from '../../types';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { mapApiError } from '../../lib/error-mapper';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -15,24 +18,27 @@ import { motion } from 'framer-motion';
 type Tab = 'all' | ScanStatus;
 
 export const ScansPage: React.FC = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scans, setScans] = useState<Scan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchScans = async () => {
     try {
       const response = await apiClient.get('/scan/list');
       setScans(response.data);
+      setError(null);
     } catch (error) {
-      console.error('Failed to fetch scans:', error);
+      setError(mapApiError(error));
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchScans();
+    void Promise.resolve().then(fetchScans);
   }, []);
 
   const filteredScans = useMemo(() => {
@@ -101,7 +107,7 @@ export const ScansPage: React.FC = () => {
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden shadow-xl">
-        {isLoading ? (
+        {error ? (<ErrorState description={error} onRetry={fetchScans} />) : isLoading ? (
           <div className="p-12 text-center text-sentinel-text-secondary">Loading scans...</div>
         ) : filteredScans.length === 0 ? (
           <EmptyState 
@@ -180,7 +186,7 @@ export const ScansPage: React.FC = () => {
                       <Button 
                         variant="secondary" 
                         size="sm"
-                        onClick={() => window.location.href = `/scans/${scan.id}`}
+                        onClick={() => router.push(`/scans/${scan.id}`)}
                       >
                         View
                       </Button>

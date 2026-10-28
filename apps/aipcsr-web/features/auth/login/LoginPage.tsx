@@ -27,15 +27,15 @@ export const LoginPage: React.FC = () => {
             <ul className="space-y-4 text-[15px] text-sentinel-text-secondary">
               <li className="flex items-start">
                 <svg className="w-5 h-5 mr-3 mt-0.5 text-sentinel-completed" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                Scan any GitHub repository in seconds
+                Scan your connected GitHub repositories
               </li>
               <li className="flex items-start">
                 <svg className="w-5 h-5 mr-3 mt-0.5 text-sentinel-completed" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                AI-powered vulnerability analysis via GPT-4
+                Contextual AI vulnerability analysis
               </li>
               <li className="flex items-start">
                 <svg className="w-5 h-5 mr-3 mt-0.5 text-sentinel-completed" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                Automated patch generation and PR creation
+                Validated patch suggestions and draft PRs
               </li>
             </ul>
           </div>
@@ -49,14 +49,12 @@ export const LoginPage: React.FC = () => {
             <div className="w-3 h-3 rounded-full bg-sentinel-completed"></div>
           </div>
           <div className="text-sentinel-text-secondary">
-            $ sentinel-scan analyze --repo github.com/user/auth-api<br/>
-            <span className="text-sentinel-text-tertiary">Analyzing 1,245 files...</span><br/>
-            <br/>
-            <span className="text-sentinel-critical">CRITICAL</span> <span className="text-sentinel-accent">src/middleware.ts:42</span><br/>
-            SQL Injection detected in user-provided input.<br/>
-            <br/>
-            <span className="text-sentinel-completed">✓</span> Generating AI Patch...<br/>
-            <span className="text-sentinel-completed">✓</span> Pull Request created #42
+            <span className="text-sentinel-text-primary">Example security review</span><br/><br/>
+            <span className="text-sentinel-high">HIGH</span> <span className="text-sentinel-accent">src/db.py:42</span><br/>
+            Potential SQL injection from untrusted input.<br/><br/>
+            Review the finding and contextual suggestion.<br/>
+            Validate the change before opening a draft PR.<br/>
+            Human review is required before merging.
           </div>
         </div>
       </div>
@@ -76,7 +74,7 @@ export const LoginPage: React.FC = () => {
           <LoginForm />
 
           <p className="mt-8 text-center text-[13px] text-sentinel-text-secondary">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-sentinel-accent hover:text-blue-400 font-medium transition-colors">
               Register
             </Link>
