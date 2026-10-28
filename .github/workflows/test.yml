@@ -61,7 +61,6 @@ jobs:
         run: |
           python -m venv .scanners
           .scanners/bin/pip install setuptools==80.10.2 bandit==1.9.4 semgrep==1.99.0
-          echo "$PWD/.scanners/bin" >> "$GITHUB_PATH"
           sudo mkdir -p /opt/scanners
           sudo chown "$USER" /opt/scanners
           npm install --prefix /opt/scanners --save-exact eslint@9.39.4 @typescript-eslint/parser@8.46.2
@@ -69,7 +68,7 @@ jobs:
       - name: PostgreSQL migration and complete backend test suite
         env:
           SKIP_FRONTEND: "1"
-        run: bash run_ci_tests.sh
+        run: PYTHON_BIN="$(command -v python)" PATH="$PWD/.scanners/bin:$PATH" bash run_ci_tests.sh
       - name: Verify migration is idempotent
         env:
           PYTHONPATH: apps/aipcsr-api:core/db-core
